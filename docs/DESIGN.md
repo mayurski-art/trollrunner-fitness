@@ -1,6 +1,8 @@
 # fitness.trollrunner.net — Design Doc (v1, for approval)
 
-**Status: DRAFT — awaiting 4 decisions before any app code is written.**
+**Status: APPROVED 2026-07-24 — all 4 decisions locked: (1) Vercel free
+tier, (2) reuse TrollRunner Supabase accounts, (3) hybrid rules-first AI
+coach, (4) nutrition built in-app. Building from Phase 0.**
 
 A premium AI fitness platform: Strava-grade activity tracking + an adaptive
 coach for running, strength, recovery, and nutrition. Polished SaaS look
@@ -17,7 +19,7 @@ static files only, and Strava's OAuth token exchange requires a server-side
 secret. Every other TrollRunner site is static on Pages; this one can't be
 (without gutting the requirements).
 
-### Decision 1 — Hosting
+### Decision 1 — Hosting — **LOCKED: A (Vercel free tier)**
 
 | Option | How it works | Trade-off |
 |---|---|---|
@@ -28,14 +30,14 @@ secret. Every other TrollRunner site is static on Pages; this one can't be
 The existing `CNAME` file in this repo implies Pages; with Option A it gets
 retired and DNS does the work instead.
 
-### Decision 2 — Accounts
+### Decision 2 — Accounts — **LOCKED: A (reuse TrollRunner Supabase)**
 
 | Option | Trade-off |
 |---|---|
 | **A. Reuse the TrollRunner Supabase project (recommended)** | Same login as trollrunner.net / TrollChat / games (username + password, X linking already configured). Fitness tables live in the same Postgres with a `fit_` prefix + RLS. Cross-ecosystem XP becomes possible. |
 | B. Fresh dedicated Supabase project | Clean isolation, separate quotas — but a second account system and no shared identity. |
 
-### Decision 3 — What powers the "AI" coach
+### Decision 3 — What powers the "AI" coach — **LOCKED: A (hybrid, rules-first)**
 
 | Option | Trade-off |
 |---|---|
@@ -43,7 +45,7 @@ retired and DNS does the work instead.
 | B. LLM from day one | Real Claude API behind every recommendation. Needs an API key + per-request cost immediately; slower; harder to keep consistent. |
 | C. Rules engine only | Zero cost forever, but no conversational coach — loses the flagship feel. |
 
-### Decision 4 — Nutrition module vs nutrition.trollrunner.net
+### Decision 4 — Nutrition module vs nutrition.trollrunner.net — **LOCKED: A (in-app)**
 
 | Option | Trade-off |
 |---|---|
