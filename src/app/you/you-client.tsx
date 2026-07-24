@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import Link from "next/link";
+import { useEffect, useState } from "react";
 import { useSession } from "@/lib/accounts/session-context";
+import { getOnboardingStatus } from "@/lib/onboarding/api";
 
 export function YouClient() {
   const { status, session } = useSession();
@@ -19,6 +21,19 @@ export function YouClient() {
 
 function ProfileView() {
   const { session, logout } = useSession();
+  const [onboardingComplete, setOnboardingComplete] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (!session) return;
+    let cancelled = false;
+    void getOnboardingStatus(session.userId).then((result) => {
+      if (!cancelled) setOnboardingComplete(result === "complete");
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [session]);
+
   if (!session) return null;
 
   const joined = new Date(session.joinedAt).toLocaleDateString(undefined, {
@@ -31,7 +46,7 @@ function ProfileView() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <h1 className="text-2xl font-bold tracking-tight">You</h1>
         <span className="rounded-full bg-brand-soft px-3 py-1 text-xs font-semibold text-brand">
-          Phase 1 · accounts
+          Phase 2 · onboarding
         </span>
       </div>
 
@@ -49,11 +64,27 @@ function ProfileView() {
 
       <section className="rounded-2xl border border-line bg-surface p-5">
         <h2 className="text-sm font-semibold">Your training profile</h2>
-        <p className="mt-2 text-sm text-muted">
-          The onboarding questionnaire (goals, running/strength history,
-          equipment, recovery, nutrition, medical) lands in Phase 2 — that&apos;s
-          what the coach engine will use to build your plan.
-        </p>
+        {onboardingComplete === false ? (
+          <>
+            <p className="mt-2 text-sm text-muted">
+              You haven&apos;t told us about your goals yet — the coach needs
+              this to build a plan around the real you.
+            </p>
+            <Link
+              href="/onboarding"
+              className="mt-3 inline-block rounded-full bg-brand px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-strong"
+            >
+              Start onboarding
+            </Link>
+          </>
+        ) : onboardingComplete === true ? (
+          <p className="mt-2 text-sm text-muted">
+            Onboarding complete. The training and coach engines that use this
+            profile land in later phases.
+          </p>
+        ) : (
+          <p className="mt-2 text-sm text-muted">Checking your profile…</p>
+        )}
       </section>
 
       <button

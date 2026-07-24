@@ -1,3 +1,5 @@
+import { OnboardingBanner } from "@/components/onboarding-banner";
+
 const STATS = [
   {
     label: "This week",
@@ -32,9 +34,11 @@ export default function Home() {
           </h1>
         </div>
         <span className="rounded-full bg-brand-soft px-3 py-1 text-xs font-semibold text-brand">
-          Phase 0 · foundations
+          Phase 2 · onboarding
         </span>
       </div>
+
+      <OnboardingBanner />
 
       <section aria-label="Your stats" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {STATS.map((stat) => (
