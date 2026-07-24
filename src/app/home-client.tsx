@@ -5,9 +5,11 @@ import { useEffect, useState } from "react";
 import { useSession } from "@/lib/accounts/session-context";
 import { listActivities } from "@/lib/activities/api";
 import { currentStreak, weeklyMileage } from "@/lib/activities/stats";
+import { monthSummary, weeklyTrend } from "@/lib/activities/trends";
 import type { Activity } from "@/lib/activities/types";
 import { ActivityCard } from "@/components/activities/activity-card";
 import { OnboardingBanner } from "@/components/onboarding-banner";
+import { WeeklyTrends } from "@/components/analytics/weekly-trends";
 
 export function HomeClient() {
   const { status, session } = useSession();
@@ -26,6 +28,8 @@ export function HomeClient() {
 
   const mileage = activities ? weeklyMileage(activities) : null;
   const streak = activities ? currentStreak(activities) : null;
+  const weeks = activities ? weeklyTrend(activities) : [];
+  const month = activities ? monthSummary(activities) : null;
 
   const stats = [
     {
@@ -58,7 +62,7 @@ export function HomeClient() {
           <h1 className="text-2xl font-bold tracking-tight">TrollRunner Fitness</h1>
         </div>
         <span className="rounded-full bg-brand-soft px-3 py-1 text-xs font-semibold text-brand">
-          Phase 3 · activities
+          Phase 4 · analytics
         </span>
       </div>
 
@@ -75,6 +79,27 @@ export function HomeClient() {
           </div>
         ))}
       </section>
+
+      {status === "authed" && activities && activities.length > 0 && (
+        <>
+          <section aria-label="Weekly trends" className="space-y-3">
+            <h2 className="text-sm font-semibold">Trends</h2>
+            <WeeklyTrends weeks={weeks} />
+          </section>
+
+          {month && (
+            <section
+              aria-label="This month"
+              className="grid grid-cols-2 gap-3 lg:grid-cols-4"
+            >
+              <MiniStat label="Mileage this month" value={`${month.totalMileage} mi`} />
+              <MiniStat label="Runs" value={String(month.runCount)} />
+              <MiniStat label="Strength sessions" value={String(month.strengthCount)} />
+              <MiniStat label="Total activities" value={String(month.totalActivities)} />
+            </section>
+          )}
+        </>
+      )}
 
       <section
         aria-label="Today's workout"
@@ -124,6 +149,15 @@ export function HomeClient() {
           </div>
         )}
       </section>
+    </div>
+  );
+}
+
+function MiniStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-line bg-surface p-4">
+      <p className="text-xs font-medium uppercase tracking-wide text-muted">{label}</p>
+      <p className="mt-1 font-mono text-xl font-semibold">{value}</p>
     </div>
   );
 }
