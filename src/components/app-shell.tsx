@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession } from "@/lib/accounts/session-context";
 
 type Tab = {
   href: string;
@@ -66,6 +67,7 @@ function isActive(pathname: string, href: string) {
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const { status, session } = useSession();
 
   return (
     <div className="flex min-h-dvh flex-col">
@@ -75,23 +77,36 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             trollrunner<span className="font-bold text-brand"> fitness</span>
           </Link>
           <nav aria-label="Primary" className="hidden items-center gap-1 md:flex">
-            {TABS.filter((t) => t.href !== "/log").map((tab) => {
-              const active = isActive(pathname, tab.href);
-              return (
-                <Link
-                  key={tab.href}
-                  href={tab.href}
-                  aria-current={active ? "page" : undefined}
-                  className={`rounded-full px-3.5 py-1.5 text-sm transition-colors ${
-                    active
-                      ? "bg-raised font-semibold text-foreground"
-                      : "text-muted hover:text-foreground"
-                  }`}
-                >
-                  {tab.label}
-                </Link>
-              );
-            })}
+            {TABS.filter((t) => t.href !== "/log" && t.href !== "/you").map(
+              (tab) => {
+                const active = isActive(pathname, tab.href);
+                return (
+                  <Link
+                    key={tab.href}
+                    href={tab.href}
+                    aria-current={active ? "page" : undefined}
+                    className={`rounded-full px-3.5 py-1.5 text-sm transition-colors ${
+                      active
+                        ? "bg-raised font-semibold text-foreground"
+                        : "text-muted hover:text-foreground"
+                    }`}
+                  >
+                    {tab.label}
+                  </Link>
+                );
+              }
+            )}
+            <Link
+              href="/you"
+              aria-current={isActive(pathname, "/you") ? "page" : undefined}
+              className={`rounded-full px-3.5 py-1.5 text-sm transition-colors ${
+                isActive(pathname, "/you")
+                  ? "bg-raised font-semibold text-foreground"
+                  : "text-muted hover:text-foreground"
+              }`}
+            >
+              {status === "authed" && session ? `🧌 ${session.username}` : "Sign in"}
+            </Link>
             <Link
               href="/log"
               className="ml-2 rounded-full bg-brand px-4 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-brand-strong"
