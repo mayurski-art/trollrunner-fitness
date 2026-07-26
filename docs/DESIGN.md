@@ -94,8 +94,11 @@ their API is ever connected.
   distance, time, pace, HR, elevation, splits JSONB
 - `fit_strength_sets` — exercise, weight×reps, RPE, per-workout
 - `fit_prs` — auto-detected records (lifts + race distances), timeline
-- `fit_plans` / `fit_plan_workouts` — generated training plans, per-day
-  prescriptions, completion status, adaptation log
+- `fit_plans` / `fit_plan_workouts` — **not built**; Phase 6 computes the
+  weekly plan live from `fit_activities` + `fit_goals` on every page load
+  instead of persisting it. Simpler, always current, no adaptation-log
+  bookkeeping — revisit persisted plans only if a real need shows up
+  (e.g. editing/pinning a specific day, or plan history).
 - `fit_recovery_logs` — sleep, soreness, stress, HRV; daily recovery score
 - `fit_nutrition_targets` — calories/macros/hydration, recalc triggers
 - `fit_strava_connections` — athlete id, tokens (server-only), scopes
@@ -132,8 +135,8 @@ engine's safety rails.
 | 2 | Onboarding | Conversational multi-step questionnaire (all master-prompt sections), progress bar, celebrations, writes profile/goals |
 | 3 | Activities + feed | Manual run/strength logging, Strava-style activity cards, personal feed, streaks |
 | 4 | Dashboard v1 | Today's workout, weekly mileage/volume, stat cards, first Recharts |
-| 5 | ~~Wearable sync~~ | **DROPPED** — see §3. Manual logging (Phase 3) is the only entry path. |
-| 6 | Coach engine (run) | CTL/ATL/TSB, race predictor, adaptive 5K→marathon plan generator |
+| 5 | ~~Wearable sync~~ | **DROPPED** — see §3. Repurposed: effort slider, quick-pick presets, celebration screen on manual logging instead. |
+| 6 | Coach engine (run) | **DONE.** sRPE-based CTL/ATL/TSB + ACWR guard, Riegel race predictor, live-computed weekly plan (base/build/peak/taper) on Home + a new Coach page |
 | 7 | Strength module | Programs, logging w/ rest timers, PR detection, progression + deloads |
 | 8 | Recovery | Daily check-ins, recovery score, auto load reduction |
 | 9 | Nutrition | Targets, meal timing, race fueling (per Decision 4) |
