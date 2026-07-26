@@ -13,6 +13,10 @@ import { WeeklyTrends } from "@/components/analytics/weekly-trends";
 import { computeTrainingLoad, interpretLoad } from "@/lib/coach/training-load";
 import { generateWeekPlan } from "@/lib/coach/plan";
 import { getGoals, getOnboardingWeeklyMileage, primaryRaceGoal } from "@/lib/coach/profile";
+import { getTodayRecovery, listRecentRecovery } from "@/lib/recovery/api";
+import { averageRecentScore, interpretScore, recoveryLoadMultiplier } from "@/lib/recovery/score";
+import type { RecoveryLog } from "@/lib/recovery/types";
+import { RecoveryCheckin } from "@/components/recovery/checkin-card";
 
 const TODAY_INDEX = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][new Date().getDay()];
 
@@ -21,19 +25,28 @@ export function HomeClient() {
   const [activities, setActivities] = useState<Activity[] | null>(null);
   const [ctl, setCtl] = useState<number | null>(null);
   const [loadLabel, setLoadLabel] = useState<string | null>(null);
-  const [todayWorkout, setTodayWorkout] = useState<{ type: string; detail: string } | null>(null);
+  const [todayWorkout, setTodayWorkout] = useState<{ type: string; detail: string; note: string | null } | null>(null);
+  const [todayRecovery, setTodayRecovery] = useState<RecoveryLog | null>(null);
+  const [recoveryScore, setRecoveryScore] = useState<number | null>(null);
+  const [recoveryRefresh, setRecoveryRefresh] = useState(0);
 
   useEffect(() => {
     if (status !== "authed" || !session) return;
     let cancelled = false;
     (async () => {
-      const [rows, goals, onboardingMileage] = await Promise.all([
+      const [rows, goals, onboardingMileage, recentRecovery, today] = await Promise.all([
         listActivities(session.userId, 200),
         getGoals(session.userId),
         getOnboardingWeeklyMileage(session.userId),
+        listRecentRecovery(session.userId, 7),
+        getTodayRecovery(session.userId),
       ]);
       if (cancelled) return;
+
       setActivities(rows);
+      setTodayRecovery(today);
+      const avgScore = averageRecentScore(recentRecovery, 7);
+      setRecoveryScore(avgScore);
 
       const load = computeTrainingLoad(rows);
       setCtl(load.ctl);
@@ -49,19 +62,23 @@ export function HomeClient() {
         goalLabel: raceGoal?.goal_key || null,
         targetDate: raceGoal?.target_date || null,
         baselineWeeklyMileage: baseline,
+        recoveryMultiplier: recoveryLoadMultiplier(avgScore),
       });
-      const today = plan.days.find((d) => d.day === TODAY_INDEX);
-      if (today) setTodayWorkout({ type: today.type, detail: today.detail });
+      const todayPlan = plan.days.find((d) => d.day === TODAY_INDEX);
+      if (todayPlan) {
+        setTodayWorkout({ type: todayPlan.type, detail: todayPlan.detail, note: plan.recoveryNote });
+      }
     })();
     return () => {
       cancelled = true;
     };
-  }, [status, session]);
+  }, [status, session, recoveryRefresh]);
 
   const mileage = activities ? weeklyMileage(activities) : null;
   const streak = activities ? currentStreak(activities) : null;
   const weeks = activities ? weeklyTrend(activities) : [];
   const month = activities ? monthSummary(activities) : null;
+  const recoveryStatus = interpretScore(recoveryScore);
 
   const stats = [
     {
@@ -84,6 +101,11 @@ export function HomeClient() {
       value: loadLabel ?? "—",
       note: "See the Coach tab for why",
     },
+    {
+      label: "Recovery",
+      value: recoveryScore !== null ? recoveryStatus.label : "—",
+      note: "7-day average from check-ins",
+    },
   ];
 
   return (
@@ -94,7 +116,7 @@ export function HomeClient() {
           <h1 className="text-2xl font-bold tracking-tight">TrollRunner Fitness</h1>
         </div>
         <span className="rounded-full bg-brand-soft px-3 py-1 text-xs font-semibold text-brand">
-          Phase 6 · coach engine
+          Phase 8 · recovery
         </span>
       </div>
 
@@ -111,6 +133,16 @@ export function HomeClient() {
           </div>
         ))}
       </section>
+
+      {status === "authed" && session && (
+        <section aria-label="Recovery check-in">
+          <RecoveryCheckin
+            userId={session.userId}
+            today={todayRecovery}
+            onLogged={() => setRecoveryRefresh((n) => n + 1)}
+          />
+        </section>
+      )}
 
       {status === "authed" && activities && activities.length > 0 && (
         <>
@@ -144,10 +176,15 @@ export function HomeClient() {
           </Link>
         </div>
         {status === "authed" && todayWorkout ? (
-          <p className="mt-2 text-sm">
-            <span className="font-medium">{todayWorkout.type}</span>
-            <span className="text-muted"> — {todayWorkout.detail}</span>
-          </p>
+          <>
+            <p className="mt-2 text-sm">
+              <span className="font-medium">{todayWorkout.type}</span>
+              <span className="text-muted"> — {todayWorkout.detail}</span>
+            </p>
+            {todayWorkout.note && (
+              <p className="mt-1 text-xs text-amber-400">{todayWorkout.note}</p>
+            )}
+          </>
         ) : (
           <p className="mt-2 text-sm text-muted">
             {status === "authed"

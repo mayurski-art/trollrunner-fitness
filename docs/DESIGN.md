@@ -137,8 +137,8 @@ engine's safety rails.
 | 4 | Dashboard v1 | Today's workout, weekly mileage/volume, stat cards, first Recharts |
 | 5 | ~~Wearable sync~~ | **DROPPED** — see §3. Repurposed: effort slider, quick-pick presets, celebration screen on manual logging instead. |
 | 6 | Coach engine (run) | **DONE.** sRPE-based CTL/ATL/TSB + ACWR guard, Riegel race predictor, live-computed weekly plan (base/build/peak/taper) on Home + a new Coach page |
-| 7 | Strength module | Programs, logging w/ rest timers, PR detection, progression + deloads |
-| 8 | Recovery | Daily check-ins, recovery score, auto load reduction |
+| 7 | Strength module | **DONE.** 5 program templates on a Training page browser with quick-start into Log, rest timer, Epley-based PR detection + celebration. Progression/deload logic deferred — no per-session history state yet, revisit if it becomes a real gap. |
+| 8 | Recovery | **DONE.** Daily sleep/soreness/stress check-in (fit_recovery_logs), 0-100 recovery score, feeds a load multiplier into the Phase 6 plan generator (auto-trims weekly mileage on a poor recovery trend) |
 | 9 | Nutrition | Targets, meal timing, race fueling (per Decision 4) |
 | 10 | Analytics | PR timeline, trends, filters (week/month/year/custom), annual summary |
 | 11 | Social | Follows, kudos, comments, clubs, challenges, leaderboards (native data only) |

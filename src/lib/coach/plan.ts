@@ -9,6 +9,7 @@ export type WeekPlan = {
   weeksUntilGoal: number | null;
   goalLabel: string | null;
   days: DayPlan[];
+  recoveryNote: string | null;
 };
 
 /** Running goals this generator can build a race-specific plan for. */
@@ -101,10 +102,12 @@ export function generateWeekPlan({
   goalLabel,
   targetDate,
   baselineWeeklyMileage,
+  recoveryMultiplier = 1,
 }: {
   goalLabel: string | null;
   targetDate: string | null;
   baselineWeeklyMileage: number;
+  recoveryMultiplier?: number;
 }): WeekPlan {
   const weeksUntilGoal = targetDate
     ? Math.max(1, Math.ceil((new Date(targetDate).getTime() - Date.now()) / (7 * 24 * 60 * 60 * 1000)))
@@ -112,7 +115,13 @@ export function generateWeekPlan({
 
   const { phase, why } = phaseFor(weeksUntilGoal);
   const baseline = baselineWeeklyMileage > 0 ? baselineWeeklyMileage : 10;
-  const targetMileage = Math.round(baseline * PHASE_MULTIPLIER[phase] * 10) / 10;
+  const targetMileage =
+    Math.round(baseline * PHASE_MULTIPLIER[phase] * recoveryMultiplier * 10) / 10;
+
+  const recoveryNote =
+    recoveryMultiplier < 1
+      ? `Trimmed ${Math.round((1 - recoveryMultiplier) * 100)}% for recent low recovery scores.`
+      : null;
 
   return {
     phase,
@@ -121,5 +130,6 @@ export function generateWeekPlan({
     weeksUntilGoal,
     goalLabel,
     days: dayPlansFor(phase, targetMileage),
+    recoveryNote,
   };
 }

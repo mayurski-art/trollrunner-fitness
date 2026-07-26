@@ -8,12 +8,16 @@ import { computeTrainingLoad, interpretLoad, type LoadStatus, type TrainingLoad 
 import { predictRaceTimes, type RacePrediction } from "@/lib/coach/race-predictor";
 import { generateWeekPlan, type WeekPlan } from "@/lib/coach/plan";
 import { getGoals, getOnboardingWeeklyMileage, primaryRaceGoal } from "@/lib/coach/profile";
+import { listRecentRecovery } from "@/lib/recovery/api";
+import { averageRecentScore, interpretScore, recoveryLoadMultiplier, type RecoveryStatus } from "@/lib/recovery/score";
 
 type CoachData = {
   load: TrainingLoad;
   status: LoadStatus;
   predictions: RacePrediction[] | null;
   plan: WeekPlan;
+  recoveryScore: number | null;
+  recoveryStatus: RecoveryStatus;
 };
 
 const TONE_STYLES: Record<LoadStatus["tone"], string> = {
@@ -30,16 +34,19 @@ export function CoachClient() {
     if (status !== "authed" || !session) return;
     let cancelled = false;
     (async () => {
-      const [activities, goals, onboardingMileage] = await Promise.all([
+      const [activities, goals, onboardingMileage, recentRecovery] = await Promise.all([
         listActivities(session.userId, 200),
         getGoals(session.userId),
         getOnboardingWeeklyMileage(session.userId),
+        listRecentRecovery(session.userId, 7),
       ]);
       if (cancelled) return;
 
       const load = computeTrainingLoad(activities);
       const loadStatus = interpretLoad(load);
       const predictions = predictRaceTimes(activities);
+      const recoveryScore = averageRecentScore(recentRecovery, 7);
+      const recoveryStatus = interpretScore(recoveryScore);
 
       const recentWeeks = weeklyTrend(activities, 4);
       const loggedAvg =
@@ -51,9 +58,10 @@ export function CoachClient() {
         goalLabel: raceGoal?.goal_key || null,
         targetDate: raceGoal?.target_date || null,
         baselineWeeklyMileage: baseline,
+        recoveryMultiplier: recoveryLoadMultiplier(recoveryScore),
       });
 
-      setData({ load, status: loadStatus, predictions, plan });
+      setData({ load, status: loadStatus, predictions, plan, recoveryScore, recoveryStatus });
     })();
     return () => {
       cancelled = true;
@@ -72,7 +80,7 @@ export function CoachClient() {
     );
   }
 
-  const { load, status: loadStatus, predictions, plan } = data;
+  const { load, status: loadStatus, predictions, plan, recoveryScore, recoveryStatus } = data;
 
   return (
     <div className="space-y-6">
@@ -96,6 +104,20 @@ export function CoachClient() {
           <Stat label="Form (TSB)" value={load.tsb} />
         </div>
         <p className="mt-3 text-sm text-muted">{loadStatus.why}</p>
+      </section>
+
+      <section className="rounded-2xl border border-line bg-surface p-5">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold">Recovery</h2>
+          <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${TONE_STYLES[recoveryStatus.tone]}`}>
+            {recoveryStatus.label}
+          </span>
+        </div>
+        <p className="mt-2 text-sm text-muted">
+          {recoveryScore !== null
+            ? `7-day average score: ${recoveryScore}/100, from your daily check-ins.`
+            : "Log a daily check-in on the Home tab (sleep, soreness, stress) to unlock this."}
+        </p>
       </section>
 
       <section className="rounded-2xl border border-line bg-surface p-5">
@@ -134,6 +156,9 @@ export function CoachClient() {
           Target: {plan.targetMileage} mi this week
           {plan.goalLabel ? ` · building toward "${plan.goalLabel}"` : ""}
         </p>
+        {plan.recoveryNote && (
+          <p className="mt-1 text-xs text-amber-400">{plan.recoveryNote}</p>
+        )}
         <div className="mt-3 divide-y divide-line">
           {plan.days.map((d) => (
             <div key={d.day} className="flex items-start justify-between gap-3 py-2 text-sm">
