@@ -3,9 +3,13 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useSession } from "@/lib/accounts/session-context";
-import { logRun, logStrength } from "@/lib/activities/api";
+import { listActivities, logRun, logStrength } from "@/lib/activities/api";
+import { currentStreak } from "@/lib/activities/stats";
 import type { StrengthSet } from "@/lib/activities/types";
+import { RUN_DISTANCE_PRESETS, STRENGTH_EXERCISE_PRESETS } from "@/lib/activities/presets";
 import { TextArea, TextField } from "@/components/onboarding/field";
+import { EffortSlider } from "@/components/activities/effort-slider";
+import { Celebration } from "@/components/activities/celebration";
 
 function nowLocalIso(): string {
   const d = new Date();
@@ -17,6 +21,7 @@ export function LogClient() {
   const router = useRouter();
   const { status, session } = useSession();
   const [mode, setMode] = useState<"run" | "strength">("run");
+  const [streak, setStreak] = useState<number | null>(null);
 
   if (status === "loading") {
     return <p className="text-sm text-muted">Loading…</p>;
@@ -32,12 +37,21 @@ export function LogClient() {
     );
   }
 
+  async function handleSaved() {
+    const rows = await listActivities(session!.userId);
+    setStreak(currentStreak(rows));
+  }
+
+  if (streak !== null) {
+    return <Celebration streak={streak} onDone={() => router.push("/")} />;
+  }
+
   return (
     <div className="mx-auto max-w-lg space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <h1 className="text-2xl font-bold tracking-tight">Log activity</h1>
         <span className="rounded-full bg-brand-soft px-3 py-1 text-xs font-semibold text-brand">
-          Phase 3 · activities
+          Manual logging
         </span>
       </div>
 
@@ -57,20 +71,27 @@ export function LogClient() {
       </div>
 
       {mode === "run" ? (
-        <RunForm userId={session.userId} onSaved={() => router.push("/")} />
+        <RunForm userId={session.userId} onSaved={handleSaved} />
       ) : (
-        <StrengthForm userId={session.userId} onSaved={() => router.push("/")} />
+        <StrengthForm userId={session.userId} onSaved={handleSaved} />
       )}
     </div>
   );
 }
 
-function RunForm({ userId, onSaved }: { userId: string; onSaved: () => void }) {
+function RunForm({
+  userId,
+  onSaved,
+}: {
+  userId: string;
+  onSaved: () => Promise<void>;
+}) {
   const [title, setTitle] = useState("Run");
   const [occurredAt, setOccurredAt] = useState(nowLocalIso());
   const [distanceMi, setDistanceMi] = useState("");
   const [durationMin, setDurationMin] = useState("");
   const [elevationFt, setElevationFt] = useState("");
+  const [effort, setEffort] = useState<number | null>(null);
   const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -87,9 +108,10 @@ function RunForm({ userId, onSaved }: { userId: string; onSaved: () => void }) {
         distanceMi,
         durationMin,
         elevationFt,
+        effort,
         notes,
       });
-      onSaved();
+      await onSaved();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not save the run.");
     } finally {
@@ -106,6 +128,27 @@ function RunForm({ userId, onSaved }: { userId: string; onSaved: () => void }) {
         value={occurredAt}
         onChange={setOccurredAt}
       />
+
+      <div>
+        <p className="mb-1.5 text-xs font-medium text-muted">Quick distance</p>
+        <div className="flex flex-wrap gap-2">
+          {RUN_DISTANCE_PRESETS.map((p) => (
+            <button
+              key={p.label}
+              type="button"
+              onClick={() => setDistanceMi(p.value)}
+              className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                distanceMi === p.value
+                  ? "border-brand bg-brand-soft text-brand"
+                  : "border-line text-muted hover:text-foreground"
+              }`}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="grid grid-cols-2 gap-3">
         <TextField
           label="Distance (mi)"
@@ -126,6 +169,9 @@ function RunForm({ userId, onSaved }: { userId: string; onSaved: () => void }) {
           onChange={setElevationFt}
         />
       </div>
+
+      <EffortSlider value={effort} onChange={setEffort} />
+
       <TextArea label="Notes" value={notes} onChange={setNotes} />
       {error && (
         <p role="alert" className="text-sm text-red-400">
@@ -135,7 +181,7 @@ function RunForm({ userId, onSaved }: { userId: string; onSaved: () => void }) {
       <button
         type="submit"
         disabled={busy}
-        className="w-full rounded-full bg-brand py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-strong disabled:opacity-60"
+        className="w-full rounded-full bg-brand py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-strong active:scale-[0.98] disabled:opacity-60"
       >
         {busy ? "Saving…" : "Save run"}
       </button>
@@ -143,10 +189,17 @@ function RunForm({ userId, onSaved }: { userId: string; onSaved: () => void }) {
   );
 }
 
-function StrengthForm({ userId, onSaved }: { userId: string; onSaved: () => void }) {
+function StrengthForm({
+  userId,
+  onSaved,
+}: {
+  userId: string;
+  onSaved: () => Promise<void>;
+}) {
   const [title, setTitle] = useState("Strength workout");
   const [occurredAt, setOccurredAt] = useState(nowLocalIso());
   const [notes, setNotes] = useState("");
+  const [effort, setEffort] = useState<number | null>(null);
   const [sets, setSets] = useState<StrengthSet[]>([
     { exercise: "", weightLb: "", reps: "" },
   ]);
@@ -157,8 +210,8 @@ function StrengthForm({ userId, onSaved }: { userId: string; onSaved: () => void
     setSets((prev) => prev.map((s, idx) => (idx === i ? { ...s, ...patch } : s)));
   }
 
-  function addSet() {
-    setSets((prev) => [...prev, { exercise: "", weightLb: "", reps: "" }]);
+  function addSet(exercise = "") {
+    setSets((prev) => [...prev, { exercise, weightLb: "", reps: "" }]);
   }
 
   function removeSet(i: number) {
@@ -174,10 +227,11 @@ function StrengthForm({ userId, onSaved }: { userId: string; onSaved: () => void
         type: "strength",
         title,
         occurredAt: new Date(occurredAt).toISOString(),
+        effort,
         notes,
         sets,
       });
-      onSaved();
+      await onSaved();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not save the workout.");
     } finally {
@@ -194,6 +248,22 @@ function StrengthForm({ userId, onSaved }: { userId: string; onSaved: () => void
         value={occurredAt}
         onChange={setOccurredAt}
       />
+
+      <div>
+        <p className="mb-1.5 text-xs font-medium text-muted">Quick add</p>
+        <div className="flex flex-wrap gap-2">
+          {STRENGTH_EXERCISE_PRESETS.map((exercise) => (
+            <button
+              key={exercise}
+              type="button"
+              onClick={() => addSet(exercise)}
+              className="rounded-full border border-line px-3 py-1 text-xs font-medium text-muted transition-colors hover:border-brand hover:text-foreground"
+            >
+              + {exercise}
+            </button>
+          ))}
+        </div>
+      </div>
 
       <div className="space-y-2">
         <p className="text-xs font-medium text-muted">Sets</p>
@@ -228,12 +298,14 @@ function StrengthForm({ userId, onSaved }: { userId: string; onSaved: () => void
         ))}
         <button
           type="button"
-          onClick={addSet}
+          onClick={() => addSet()}
           className="rounded-full border border-line px-3.5 py-1.5 text-sm text-muted transition-colors hover:text-foreground"
         >
           + Add set
         </button>
       </div>
+
+      <EffortSlider value={effort} onChange={setEffort} />
 
       <TextArea label="Notes" value={notes} onChange={setNotes} />
       {error && (
@@ -244,7 +316,7 @@ function StrengthForm({ userId, onSaved }: { userId: string; onSaved: () => void
       <button
         type="submit"
         disabled={busy}
-        className="w-full rounded-full bg-brand py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-strong disabled:opacity-60"
+        className="w-full rounded-full bg-brand py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-strong active:scale-[0.98] disabled:opacity-60"
       >
         {busy ? "Saving…" : "Save workout"}
       </button>

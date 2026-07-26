@@ -1,5 +1,9 @@
 import type { Activity } from "@/lib/activities/types";
 
+const EFFORT_EMOJI: Record<number, string> = {
+  1: "😴", 2: "😴", 3: "🙂", 4: "🙂", 5: "😅", 6: "😅", 7: "😤", 8: "😤", 9: "🥵", 10: "🥵",
+};
+
 function formatPace(distanceMi: number | null, durationSec: number | null): string | null {
   if (!distanceMi || !durationSec) return null;
   const secPerMi = durationSec / distanceMi;
@@ -52,7 +56,14 @@ export function ActivityCard({ activity }: { activity: Activity }) {
       </span>
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline justify-between gap-2">
-          <p className="truncate font-semibold">{activity.title}</p>
+          <p className="truncate font-semibold">
+            {activity.title}
+            {activity.effort && (
+              <span className="ml-1.5" title={`Effort ${activity.effort}/10`}>
+                {EFFORT_EMOJI[activity.effort]}
+              </span>
+            )}
+          </p>
           <p className="shrink-0 text-xs text-muted">{when}</p>
         </div>
         {stats.length > 0 && (

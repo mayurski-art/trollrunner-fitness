@@ -10,6 +10,7 @@ type ActivityRow = {
   distance_mi: number | null;
   duration_sec: number | null;
   elevation_ft: number | null;
+  effort: number | null;
   fit_strength_sets: { exercise: string; weight_lb: number | null; reps: number | null }[];
 };
 
@@ -23,6 +24,7 @@ function toActivity(row: ActivityRow): Activity {
     distanceMi: row.distance_mi,
     durationSec: row.duration_sec,
     elevationFt: row.elevation_ft,
+    effort: row.effort,
     sets: row.fit_strength_sets || [],
   };
 }
@@ -32,7 +34,7 @@ export async function listActivities(userId: string, limit = 30): Promise<Activi
   const { data, error } = await sb
     .from("fit_activities")
     .select(
-      "id, type, title, notes, occurred_at, distance_mi, duration_sec, elevation_ft, fit_strength_sets(exercise, weight_lb, reps)"
+      "id, type, title, notes, occurred_at, distance_mi, duration_sec, elevation_ft, effort, fit_strength_sets(exercise, weight_lb, reps)"
     )
     .eq("user_id", userId)
     .order("occurred_at", { ascending: false })
@@ -59,6 +61,7 @@ export async function logRun(userId: string, input: NewRunActivity) {
     distance_mi: toNumberOrNull(input.distanceMi),
     duration_sec: durationMin !== null ? Math.round(durationMin * 60) : null,
     elevation_ft: toNumberOrNull(input.elevationFt),
+    effort: input.effort,
   });
   if (error) throw error;
 }
@@ -73,6 +76,7 @@ export async function logStrength(userId: string, input: NewStrengthActivity) {
       title: input.title || "Strength workout",
       notes: input.notes,
       occurred_at: input.occurredAt,
+      effort: input.effort,
     })
     .select("id")
     .single();

@@ -16,6 +16,7 @@ export type Activity = {
   distanceMi: number | null;
   durationSec: number | null;
   elevationFt: number | null;
+  effort: number | null;
   sets: { exercise: string; weight_lb: number | null; reps: number | null }[];
 };
 
@@ -26,6 +27,7 @@ export type NewRunActivity = {
   distanceMi: string;
   durationMin: string;
   elevationFt: string;
+  effort: number | null;
   notes: string;
 };
 
@@ -33,6 +35,7 @@ export type NewStrengthActivity = {
   type: "strength";
   title: string;
   occurredAt: string;
+  effort: number | null;
   notes: string;
   sets: StrengthSet[];
 };
