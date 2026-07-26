@@ -7,6 +7,10 @@ import { getOnboardingStatus } from "@/lib/onboarding/api";
 import { AnalyticsSection } from "@/components/analytics/analytics-section";
 import { FindPeople } from "@/components/social/find-people";
 import { LeaderboardCard } from "@/components/social/leaderboard-card";
+import { listActivities } from "@/lib/activities/api";
+import { computeBadges, type Badge } from "@/lib/gamification/badges";
+import { BadgesGrid } from "@/components/gamification/badges-grid";
+import { HumorToggle } from "@/components/gamification/humor-toggle";
 
 export function YouClient() {
   const { status, session } = useSession();
@@ -25,12 +29,16 @@ export function YouClient() {
 function ProfileView() {
   const { session, logout } = useSession();
   const [onboardingComplete, setOnboardingComplete] = useState<boolean | null>(null);
+  const [badges, setBadges] = useState<Badge[] | null>(null);
 
   useEffect(() => {
     if (!session) return;
     let cancelled = false;
     void getOnboardingStatus(session.userId).then((result) => {
       if (!cancelled) setOnboardingComplete(result === "complete");
+    });
+    void listActivities(session.userId, 1000).then((rows) => {
+      if (!cancelled) setBadges(computeBadges(rows));
     });
     return () => {
       cancelled = true;
@@ -49,7 +57,7 @@ function ProfileView() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <h1 className="text-2xl font-bold tracking-tight">You</h1>
         <span className="rounded-full bg-brand-soft px-3 py-1 text-xs font-semibold text-brand">
-          Phase 11 · social
+          Phase 12 · gamification
         </span>
       </div>
 
@@ -89,6 +97,10 @@ function ProfileView() {
           <p className="mt-2 text-sm text-muted">Checking your profile…</p>
         )}
       </section>
+
+      {badges && <BadgesGrid badges={badges} />}
+
+      <HumorToggle userId={session.userId} />
 
       <LeaderboardCard userId={session.userId} />
 

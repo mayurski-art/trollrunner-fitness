@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSession } from "@/lib/accounts/session-context";
 import { listActivities, logRun, logStrength } from "@/lib/activities/api";
 import { currentStreak } from "@/lib/activities/stats";
@@ -9,6 +9,8 @@ import type { Activity, StrengthSet } from "@/lib/activities/types";
 import { RUN_DISTANCE_PRESETS, STRENGTH_EXERCISE_PRESETS } from "@/lib/activities/presets";
 import { programFor } from "@/lib/strength/programs";
 import { findNewPRs, type ExerciseBest } from "@/lib/strength/prs";
+import { awardActivityXp, awardPrXp } from "@/lib/gamification/xp-bridge";
+import { getHumorEnabled } from "@/lib/gamification/humor";
 import { TextArea, TextField } from "@/components/onboarding/field";
 import { EffortSlider } from "@/components/activities/effort-slider";
 import { RestTimer } from "@/components/activities/rest-timer";
@@ -30,6 +32,18 @@ export function LogClient() {
   const [mode, setMode] = useState<"run" | "strength">(splitParam ? "strength" : "run");
   const [streak, setStreak] = useState<number | null>(null);
   const [newPRs, setNewPRs] = useState<ExerciseBest[]>([]);
+  const [humor, setHumor] = useState(true);
+
+  useEffect(() => {
+    if (!session) return;
+    let cancelled = false;
+    void getHumorEnabled(session.userId).then((v) => {
+      if (!cancelled) setHumor(v);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [session]);
 
   const prefill = useMemo(() => {
     if (!splitParam || dayParam === null) return null;
@@ -59,12 +73,17 @@ export function LogClient() {
   async function handleSaved(priorActivities: Activity[], loggedSets?: StrengthSet[]) {
     const rows = await listActivities(session!.userId);
     setStreak(currentStreak(rows));
-    if (loggedSets) setNewPRs(findNewPRs(priorActivities, loggedSets));
+    void awardActivityXp();
+    if (loggedSets) {
+      const prs = findNewPRs(priorActivities, loggedSets);
+      setNewPRs(prs);
+      for (const pr of prs) void awardPrXp(pr.exercise);
+    }
   }
 
   if (streak !== null) {
     return (
-      <Celebration streak={streak} newPRs={newPRs} onDone={() => router.push("/")} />
+      <Celebration streak={streak} newPRs={newPRs} humor={humor} onDone={() => router.push("/")} />
     );
   }
 

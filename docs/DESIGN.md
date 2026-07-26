@@ -142,7 +142,7 @@ engine's safety rails.
 | 9 | Nutrition | **DONE.** Mifflin-St Jeor calorie/macro/hydration targets (live-computed like the Phase 6 plan, no fit_nutrition_targets table), pre/post-workout tips, distance-aware race fueling, supplement education — all on the Coach page |
 | 10 | Analytics | **DONE.** PR timeline (full history, not just current bests), Week/Month/Year/Custom trend filters (daily/weekly/monthly bucketing), annual summary with a year picker — all on the You page, computed client-side from one activity fetch |
 | 11 | Social | **DONE (core loop).** Follows, kudos, comments, and a weekly following-leaderboard — all native-activities-only per the Strava compliance rule (RLS enforces it: a second SELECT policy on fit_activities/fit_strength_sets grants followers read access only where source='native'). Clubs and challenges deferred — no group data model built yet, revisit if the follow graph shows real demand for it. |
-| 12 | Gamification + personality | XP, badges, streak rewards, confetti, troll humor (toggleable) |
+| 12 | Gamification + personality | **DONE.** Real cross-ecosystem XP via the shared troll_award_xp RPC (reuses its existing 'game_run'/'high_score' allowlist entries rather than a parallel XP economy — see src/lib/gamification/xp-bridge.ts for why), 14 live-computed badges, bigger celebration at 7/30/100-day streak milestones, and a humor_enabled toggle on the You page that swaps confetti/one-liners for plain copy |
 | 13 | AI Coach chat | Claude-powered conversational coach, plateau narratives, plan Q&A — flag-gated, native data only |
 | 14 | Education + polish | Education hub articles, PWA install, a11y pass, OG/SEO |
 
