@@ -13,6 +13,7 @@ import { averageRecentScore, interpretScore, recoveryLoadMultiplier, type Recove
 import { getBodyProfile } from "@/lib/nutrition/profile";
 import { computeNutritionTargets, type NutritionTargets } from "@/lib/nutrition/targets";
 import { postWorkoutTips, preWorkoutTips, raceFuelingTips, supplementNotes } from "@/lib/nutrition/education";
+import { CoachChat } from "@/components/coach/coach-chat";
 
 type CoachData = {
   load: TrainingLoad;
@@ -125,9 +126,11 @@ export function CoachClient() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <h1 className="text-2xl font-bold tracking-tight">Coach</h1>
         <span className="rounded-full bg-brand-soft px-3 py-1 text-xs font-semibold text-brand">
-          Phase 6 · coach engine
+          Phase 13 · coach chat
         </span>
       </div>
+
+      <CoachChat />
 
       <section className="rounded-2xl border border-line bg-surface p-5">
         <div className="flex items-center justify-between">

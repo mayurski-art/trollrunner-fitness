@@ -143,7 +143,7 @@ engine's safety rails.
 | 10 | Analytics | **DONE.** PR timeline (full history, not just current bests), Week/Month/Year/Custom trend filters (daily/weekly/monthly bucketing), annual summary with a year picker — all on the You page, computed client-side from one activity fetch |
 | 11 | Social | **DONE (core loop).** Follows, kudos, comments, and a weekly following-leaderboard — all native-activities-only per the Strava compliance rule (RLS enforces it: a second SELECT policy on fit_activities/fit_strength_sets grants followers read access only where source='native'). Clubs and challenges deferred — no group data model built yet, revisit if the follow graph shows real demand for it. |
 | 12 | Gamification + personality | **DONE.** Real cross-ecosystem XP via the shared troll_award_xp RPC (reuses its existing 'game_run'/'high_score' allowlist entries rather than a parallel XP economy — see src/lib/gamification/xp-bridge.ts for why), 14 live-computed badges, bigger celebration at 7/30/100-day streak milestones, and a humor_enabled toggle on the You page that swaps confetti/one-liners for plain copy |
-| 13 | AI Coach chat | Claude-powered conversational coach, plateau narratives, plan Q&A — flag-gated, native data only |
+| 13 | AI Coach chat | **DONE.** `/api/coach-chat` (Next.js Route Handler, Claude Opus 5, effort medium) — flag-gated on `ANTHROPIC_API_KEY` presence alone (no separate feature flag), auth'd via the user's Supabase JWT server-side, context built only from source='native' fit_activities + goals + recovery + nutrition. Chat panel lives on the Coach page. Needs the user to add `ANTHROPIC_API_KEY` in Vercel to go live. |
 | 14 | Education + polish | Education hub articles, PWA install, a11y pass, OG/SEO |
 
 ## 7. Secrets + env

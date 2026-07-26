@@ -75,6 +75,13 @@ export async function getSession(): Promise<PublicSession | null> {
   return profile ? toPublicSession(profile) : null;
 }
 
+/** JWT for authenticated server-side calls (e.g. the coach chat API route). */
+export async function getAccessToken(): Promise<string | null> {
+  const sb = getClient();
+  const { data } = await sb.auth.getSession();
+  return data?.session?.access_token ?? null;
+}
+
 async function isUsernameTaken(username: string): Promise<boolean> {
   const sb = getClient();
   const { data } = await sb
