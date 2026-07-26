@@ -1,5 +1,9 @@
 export type Phase = "base" | "build" | "peak" | "taper";
 
+export function todayDayLabel(): string {
+  return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][new Date().getDay()];
+}
+
 export type DayPlan = { day: string; type: string; detail: string };
 
 export type WeekPlan = {

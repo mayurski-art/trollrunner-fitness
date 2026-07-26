@@ -6,10 +6,13 @@ import { listActivities } from "@/lib/activities/api";
 import { weeklyTrend } from "@/lib/activities/trends";
 import { computeTrainingLoad, interpretLoad, type LoadStatus, type TrainingLoad } from "@/lib/coach/training-load";
 import { predictRaceTimes, type RacePrediction } from "@/lib/coach/race-predictor";
-import { generateWeekPlan, type WeekPlan } from "@/lib/coach/plan";
+import { GOAL_DISTANCE_MI, generateWeekPlan, todayDayLabel, type WeekPlan } from "@/lib/coach/plan";
 import { getGoals, getOnboardingWeeklyMileage, primaryRaceGoal } from "@/lib/coach/profile";
 import { listRecentRecovery } from "@/lib/recovery/api";
 import { averageRecentScore, interpretScore, recoveryLoadMultiplier, type RecoveryStatus } from "@/lib/recovery/score";
+import { getBodyProfile } from "@/lib/nutrition/profile";
+import { computeNutritionTargets, type NutritionTargets } from "@/lib/nutrition/targets";
+import { postWorkoutTips, preWorkoutTips, raceFuelingTips, supplementNotes } from "@/lib/nutrition/education";
 
 type CoachData = {
   load: TrainingLoad;
@@ -18,6 +21,9 @@ type CoachData = {
   plan: WeekPlan;
   recoveryScore: number | null;
   recoveryStatus: RecoveryStatus;
+  nutrition: NutritionTargets;
+  raceDistanceMi: number | null;
+  todayWorkoutType: string | null;
 };
 
 const TONE_STYLES: Record<LoadStatus["tone"], string> = {
@@ -34,11 +40,12 @@ export function CoachClient() {
     if (status !== "authed" || !session) return;
     let cancelled = false;
     (async () => {
-      const [activities, goals, onboardingMileage, recentRecovery] = await Promise.all([
+      const [activities, goals, onboardingMileage, recentRecovery, bodyProfile] = await Promise.all([
         listActivities(session.userId, 200),
         getGoals(session.userId),
         getOnboardingWeeklyMileage(session.userId),
         listRecentRecovery(session.userId, 7),
+        getBodyProfile(session.userId),
       ]);
       if (cancelled) return;
 
@@ -61,7 +68,28 @@ export function CoachClient() {
         recoveryMultiplier: recoveryLoadMultiplier(recoveryScore),
       });
 
-      setData({ load, status: loadStatus, predictions, plan, recoveryScore, recoveryStatus });
+      const sessionsPerWeek = activities.filter(
+        (a) => new Date(a.occurredAt).getTime() >= Date.now() - 7 * 24 * 60 * 60 * 1000
+      ).length;
+      const nutrition = computeNutritionTargets(
+        bodyProfile,
+        goals.map((g) => g.goal_key),
+        sessionsPerWeek
+      );
+      const raceDistanceMi = raceGoal ? GOAL_DISTANCE_MI[raceGoal.goal_key] ?? null : null;
+      const todayWorkoutType = plan.days.find((d) => d.day === todayDayLabel())?.type ?? null;
+
+      setData({
+        load,
+        status: loadStatus,
+        predictions,
+        plan,
+        recoveryScore,
+        recoveryStatus,
+        nutrition,
+        raceDistanceMi,
+        todayWorkoutType,
+      });
     })();
     return () => {
       cancelled = true;
@@ -80,7 +108,17 @@ export function CoachClient() {
     );
   }
 
-  const { load, status: loadStatus, predictions, plan, recoveryScore, recoveryStatus } = data;
+  const {
+    load,
+    status: loadStatus,
+    predictions,
+    plan,
+    recoveryScore,
+    recoveryStatus,
+    nutrition,
+    raceDistanceMi,
+    todayWorkoutType,
+  } = data;
 
   return (
     <div className="space-y-6">
@@ -171,6 +209,45 @@ export function CoachClient() {
           ))}
         </div>
       </section>
+
+      <section className="rounded-2xl border border-line bg-surface p-5">
+        <h2 className="text-sm font-semibold">Nutrition</h2>
+        {!nutrition.hasFullProfile && (
+          <p className="mt-1 text-xs text-muted">
+            Add your age, sex, height, and weight during onboarding for
+            precise targets — these are weight-based estimates until then.
+          </p>
+        )}
+        <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <Stat label="Calories" value={nutrition.calories} />
+          <Stat label="Protein (g)" value={nutrition.proteinG} />
+          <Stat label="Carbs (g)" value={nutrition.carbsG} />
+          <Stat label="Fat (g)" value={nutrition.fatG} />
+        </div>
+        <p className="mt-2 text-xs text-muted">
+          Water target: ~{nutrition.waterOz} oz/day, scaled up on training days.
+        </p>
+
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <TipCard title="Before training" tips={preWorkoutTips()} />
+          <TipCard title="After training" tips={postWorkoutTips(todayWorkoutType)} />
+          <TipCard title="Race fueling" tips={raceFuelingTips(raceDistanceMi)} />
+          <TipCard title="Supplements" tips={supplementNotes()} />
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function TipCard({ title, tips }: { title: string; tips: string[] }) {
+  return (
+    <div className="rounded-xl border border-line bg-raised p-3">
+      <p className="text-xs font-semibold">{title}</p>
+      <ul className="mt-1.5 space-y-1 text-xs text-muted">
+        {tips.map((tip) => (
+          <li key={tip}>{tip}</li>
+        ))}
+      </ul>
     </div>
   );
 }

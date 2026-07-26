@@ -11,14 +11,14 @@ import { ActivityCard } from "@/components/activities/activity-card";
 import { OnboardingBanner } from "@/components/onboarding-banner";
 import { WeeklyTrends } from "@/components/analytics/weekly-trends";
 import { computeTrainingLoad, interpretLoad } from "@/lib/coach/training-load";
-import { generateWeekPlan } from "@/lib/coach/plan";
+import { generateWeekPlan, todayDayLabel } from "@/lib/coach/plan";
 import { getGoals, getOnboardingWeeklyMileage, primaryRaceGoal } from "@/lib/coach/profile";
 import { getTodayRecovery, listRecentRecovery } from "@/lib/recovery/api";
 import { averageRecentScore, interpretScore, recoveryLoadMultiplier } from "@/lib/recovery/score";
 import type { RecoveryLog } from "@/lib/recovery/types";
 import { RecoveryCheckin } from "@/components/recovery/checkin-card";
 
-const TODAY_INDEX = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][new Date().getDay()];
+const TODAY_INDEX = todayDayLabel();
 
 export function HomeClient() {
   const { status, session } = useSession();
