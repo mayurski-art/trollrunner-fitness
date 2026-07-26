@@ -34,6 +34,34 @@ export function computeBests(activities: Activity[]): Map<string, ExerciseBest> 
   return bests;
 }
 
+export type PrEvent = ExerciseBest & { achievedAt: string };
+
+/** Full PR history: every time a set beat the prior best for its exercise, oldest first. */
+export function computePRTimeline(activities: Activity[]): PrEvent[] {
+  const sorted = [...activities].sort(
+    (a, b) => new Date(a.occurredAt).getTime() - new Date(b.occurredAt).getTime()
+  );
+  const bests = new Map<string, ExerciseBest>();
+  const timeline: PrEvent[] = [];
+
+  for (const a of sorted) {
+    if (a.type !== "strength") continue;
+    for (const s of a.sets) {
+      if (!s.weight_lb || !s.reps) continue;
+      const estOneRm = estOneRepMax(s.weight_lb, s.reps);
+      const k = key(s.exercise);
+      const prior = bests.get(k);
+      if (!prior || estOneRm > prior.estOneRm) {
+        const entry = { exercise: s.exercise, estOneRm, weightLb: s.weight_lb, reps: s.reps };
+        bests.set(k, entry);
+        timeline.push({ ...entry, achievedAt: a.occurredAt });
+      }
+    }
+  }
+
+  return timeline.reverse(); // newest first
+}
+
 export type NewSetInput = { exercise: string; weightLb: string; reps: string };
 
 /** Which of the just-logged sets beat the prior best for that exercise. */

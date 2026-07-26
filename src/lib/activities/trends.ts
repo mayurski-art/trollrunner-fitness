@@ -48,6 +48,66 @@ export function weeklyTrend(activities: Activity[], weeks = 8): WeekPoint[] {
   return buckets;
 }
 
+function bucketStats(inBucket: Activity[]) {
+  const mileage = inBucket
+    .filter((a) => a.type === "run")
+    .reduce((sum, a) => sum + (a.distanceMi || 0), 0);
+  const volume = inBucket
+    .filter((a) => a.type === "strength")
+    .reduce(
+      (sum, a) => sum + a.sets.reduce((s, set) => s + (set.weight_lb || 0) * (set.reps || 0), 0),
+      0
+    );
+  return { mileage: Math.round(mileage * 10) / 10, volume: Math.round(volume) };
+}
+
+/** Last `days` calendar days (oldest first) — used for the Week filter. */
+export function dailyTrend(activities: Activity[], days = 7): WeekPoint[] {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const buckets: WeekPoint[] = [];
+
+  for (let i = days - 1; i >= 0; i--) {
+    const dayStart = new Date(today);
+    dayStart.setDate(dayStart.getDate() - i);
+    const dayEnd = new Date(dayStart);
+    dayEnd.setDate(dayEnd.getDate() + 1);
+
+    const inDay = activities.filter((a) => {
+      const t = new Date(a.occurredAt);
+      return t >= dayStart && t < dayEnd;
+    });
+
+    buckets.push({
+      label: dayStart.toLocaleDateString(undefined, { weekday: "short" }),
+      ...bucketStats(inDay),
+    });
+  }
+  return buckets;
+}
+
+/** Last `months` calendar months (oldest first) — used for the Year filter. */
+export function monthlyTrend(activities: Activity[], months = 12): WeekPoint[] {
+  const now = new Date();
+  const buckets: WeekPoint[] = [];
+
+  for (let i = months - 1; i >= 0; i--) {
+    const monthStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
+
+    const inMonth = activities.filter((a) => {
+      const t = new Date(a.occurredAt);
+      return t >= monthStart && t < monthEnd;
+    });
+
+    buckets.push({
+      label: monthStart.toLocaleDateString(undefined, { month: "short" }),
+      ...bucketStats(inMonth),
+    });
+  }
+  return buckets;
+}
+
 export function monthSummary(activities: Activity[]) {
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);

@@ -140,7 +140,7 @@ engine's safety rails.
 | 7 | Strength module | **DONE.** 5 program templates on a Training page browser with quick-start into Log, rest timer, Epley-based PR detection + celebration. Progression/deload logic deferred — no per-session history state yet, revisit if it becomes a real gap. |
 | 8 | Recovery | **DONE.** Daily sleep/soreness/stress check-in (fit_recovery_logs), 0-100 recovery score, feeds a load multiplier into the Phase 6 plan generator (auto-trims weekly mileage on a poor recovery trend) |
 | 9 | Nutrition | **DONE.** Mifflin-St Jeor calorie/macro/hydration targets (live-computed like the Phase 6 plan, no fit_nutrition_targets table), pre/post-workout tips, distance-aware race fueling, supplement education — all on the Coach page |
-| 10 | Analytics | PR timeline, trends, filters (week/month/year/custom), annual summary |
+| 10 | Analytics | **DONE.** PR timeline (full history, not just current bests), Week/Month/Year/Custom trend filters (daily/weekly/monthly bucketing), annual summary with a year picker — all on the You page, computed client-side from one activity fetch |
 | 11 | Social | Follows, kudos, comments, clubs, challenges, leaderboards (native data only) |
 | 12 | Gamification + personality | XP, badges, streak rewards, confetti, troll humor (toggleable) |
 | 13 | AI Coach chat | Claude-powered conversational coach, plateau narratives, plan Q&A — flag-gated, native data only |
