@@ -17,6 +17,9 @@ import { getTodayRecovery, listRecentRecovery } from "@/lib/recovery/api";
 import { averageRecentScore, interpretScore, recoveryLoadMultiplier } from "@/lib/recovery/score";
 import type { RecoveryLog } from "@/lib/recovery/types";
 import { RecoveryCheckin } from "@/components/recovery/checkin-card";
+import { getFriendsFeed, type FeedActivity } from "@/lib/social/feed";
+import { getKudosInfo, type KudosInfo } from "@/lib/social/kudos";
+import { FriendActivityCard } from "@/components/social/friend-activity-card";
 
 const TODAY_INDEX = todayDayLabel();
 
@@ -29,6 +32,8 @@ export function HomeClient() {
   const [todayRecovery, setTodayRecovery] = useState<RecoveryLog | null>(null);
   const [recoveryScore, setRecoveryScore] = useState<number | null>(null);
   const [recoveryRefresh, setRecoveryRefresh] = useState(0);
+  const [friendsFeed, setFriendsFeed] = useState<FeedActivity[] | null>(null);
+  const [kudosMap, setKudosMap] = useState<Map<string, KudosInfo>>(new Map());
 
   useEffect(() => {
     if (status !== "authed" || !session) return;
@@ -67,6 +72,13 @@ export function HomeClient() {
       const todayPlan = plan.days.find((d) => d.day === TODAY_INDEX);
       if (todayPlan) {
         setTodayWorkout({ type: todayPlan.type, detail: todayPlan.detail, note: plan.recoveryNote });
+      }
+
+      const feed = await getFriendsFeed(session.userId);
+      if (cancelled) return;
+      setFriendsFeed(feed);
+      if (feed.length) {
+        setKudosMap(await getKudosInfo(feed.map((a) => a.id), session.userId));
       }
     })();
     return () => {
@@ -116,7 +128,7 @@ export function HomeClient() {
           <h1 className="text-2xl font-bold tracking-tight">TrollRunner Fitness</h1>
         </div>
         <span className="rounded-full bg-brand-soft px-3 py-1 text-xs font-semibold text-brand">
-          Phase 8 · recovery
+          Phase 11 · social
         </span>
       </div>
 
@@ -231,6 +243,27 @@ export function HomeClient() {
           </div>
         )}
       </section>
+
+      {status === "authed" && session && friendsFeed && friendsFeed.length > 0 && (
+        <section aria-label="Friends' activity" className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold">Friends&apos; activity</h2>
+            <Link href="/you" className="text-xs font-semibold text-brand">
+              Find people →
+            </Link>
+          </div>
+          <div className="space-y-2">
+            {friendsFeed.map((a) => (
+              <FriendActivityCard
+                key={a.id}
+                activity={a}
+                kudos={kudosMap.get(a.id)}
+                currentUserId={session.userId}
+              />
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

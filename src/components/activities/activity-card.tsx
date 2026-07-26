@@ -1,6 +1,6 @@
 import type { Activity } from "@/lib/activities/types";
 
-const EFFORT_EMOJI: Record<number, string> = {
+export const EFFORT_EMOJI: Record<number, string> = {
   1: "😴", 2: "😴", 3: "🙂", 4: "🙂", 5: "😅", 6: "😅", 7: "😤", 8: "😤", 9: "🥵", 10: "🥵",
 };
 
@@ -27,8 +27,11 @@ function topSet(activity: Activity): string | null {
   return `${best.exercise} · ${best.weight_lb ?? "—"} lb × ${best.reps ?? "—"}`;
 }
 
-export function ActivityCard({ activity }: { activity: Activity }) {
-  const icon = activity.type === "run" ? "🏃" : activity.type === "strength" ? "🏋️" : "🧌";
+export function activityIcon(activity: Activity): string {
+  return activity.type === "run" ? "🏃" : activity.type === "strength" ? "🏋️" : "🧌";
+}
+
+export function activityStats(activity: Activity): string[] {
   const stats: string[] = [];
   if (activity.type === "run") {
     if (activity.distanceMi) stats.push(`${activity.distanceMi.toFixed(1)} mi`);
@@ -42,17 +45,24 @@ export function ActivityCard({ activity }: { activity: Activity }) {
     const top = topSet(activity);
     if (top) stats.push(top);
   }
+  return stats;
+}
 
-  const when = new Date(activity.occurredAt).toLocaleDateString(undefined, {
+export function activityWhen(activity: Activity): string {
+  return new Date(activity.occurredAt).toLocaleDateString(undefined, {
     weekday: "short",
     month: "short",
     day: "numeric",
   });
+}
+
+export function ActivityCard({ activity }: { activity: Activity }) {
+  const stats = activityStats(activity);
 
   return (
     <article className="flex gap-3 rounded-2xl border border-line bg-surface p-4">
       <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-raised text-lg">
-        {icon}
+        {activityIcon(activity)}
       </span>
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline justify-between gap-2">
@@ -64,7 +74,7 @@ export function ActivityCard({ activity }: { activity: Activity }) {
               </span>
             )}
           </p>
-          <p className="shrink-0 text-xs text-muted">{when}</p>
+          <p className="shrink-0 text-xs text-muted">{activityWhen(activity)}</p>
         </div>
         {stats.length > 0 && (
           <p className="mt-0.5 font-mono text-sm text-muted">{stats.join(" · ")}</p>

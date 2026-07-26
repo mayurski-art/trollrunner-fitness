@@ -5,6 +5,8 @@ import { useEffect, useState } from "react";
 import { useSession } from "@/lib/accounts/session-context";
 import { getOnboardingStatus } from "@/lib/onboarding/api";
 import { AnalyticsSection } from "@/components/analytics/analytics-section";
+import { FindPeople } from "@/components/social/find-people";
+import { LeaderboardCard } from "@/components/social/leaderboard-card";
 
 export function YouClient() {
   const { status, session } = useSession();
@@ -47,7 +49,7 @@ function ProfileView() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <h1 className="text-2xl font-bold tracking-tight">You</h1>
         <span className="rounded-full bg-brand-soft px-3 py-1 text-xs font-semibold text-brand">
-          Phase 10 · analytics
+          Phase 11 · social
         </span>
       </div>
 
@@ -87,6 +89,10 @@ function ProfileView() {
           <p className="mt-2 text-sm text-muted">Checking your profile…</p>
         )}
       </section>
+
+      <LeaderboardCard userId={session.userId} />
+
+      <FindPeople userId={session.userId} />
 
       <AnalyticsSection userId={session.userId} />
 
