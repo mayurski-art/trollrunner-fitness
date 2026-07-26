@@ -18,9 +18,10 @@ don't reopen them without being asked.
   public by design; real secrets only in Vercel env vars, never in-repo.
 
 ## Hard rules
-1. Strava API compliance shapes the product: Strava-imported data is
-   visible ONLY to its owner, never in feeds/leaderboards, never in LLM
-   context. See docs/DESIGN.md §3.
+1. No wearable/platform sync (Strava, Coros, etc.) — dropped 2026-07-24,
+   see docs/DESIGN.md §3. Manual logging (Phase 3, fit_activities) is the
+   only way activity data enters the app. Don't build an OAuth connect
+   flow unless the user explicitly revives this.
 2. The coach is a deterministic rules engine first; LLM features only in
    Phase 13, flag-gated.
 3. Recreate Strava's patterns, never its assets — no Strava logos, icons,

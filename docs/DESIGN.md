@@ -63,28 +63,26 @@ Recharts · TanStack Query · Zod · Server Actions · PWA manifest.
 Fonts: Inter (UI) + a mono for stats. Accent orange `#FF5A1F` (deliberately
 not Strava's `#FC5200`). Dark mode first, light mode supported.
 
-## 3. Strava: integration + the legal lines
+## 3. Wearable/platform sync — **DROPPED 2026-07-24: manual logging only**
 
-**Look and feel** — we recreate Strava's *patterns* (layout, nav, feed,
-stats hierarchy, profile organization) with 100% original assets. No Strava
-logos, icons, screenshots, or copy. The connect button uses Strava's own
-required "Connect with Strava" asset — that one is mandatory branding, used
-only for OAuth per their brand guidelines.
+Strava's API now gates developer app registration behind a paid Strava
+subscription (a change from when this doc was first written), and Coros's
+API access is enterprise/partner-gated rather than open self-serve. Rather
+than block the roadmap on either, **Phase 5 (wearable sync) is cut**. The
+app is manual-logging-only, permanently, unless one of these opens up
+later or the user decides to pay for Strava API access.
 
-**API compliance (this shapes the product):** Strava's API agreement
-(tightened Nov 2024) requires that data fetched from their API is shown
-**only to the user who connected it** — never in other users' feeds or
-leaderboards — and **must not be fed into AI models**. So:
+This is a low-cost cut: Phase 3 already shipped full manual logging (runs
++ strength, `fit_activities`/`fit_strength_sets`) that works identically
+for every user regardless of what watch or app they use — nobody is
+blocked from using the product. The `source` column on `fit_activities`
+(native | strava) stays in the schema unused, cheap to activate later if
+an integration ever becomes viable.
 
-- Native (in-app logged) activities are first-class and power everything:
-  social feed, leaderboards, challenges, AI features.
-- Strava-imported activities are visible **only to their owner**, feed the
-  deterministic rules engine (not an AI model — it's arithmetic), and are
-  excluded from any LLM context and any other user's view.
-- Import: OAuth connect → server-side token exchange → history backfill →
-  webhook subscription for auto-sync → refresh-token rotation.
-- You will need to create a (free) Strava API app at
-  strava.com/settings/api to get a client ID/secret.
+**Look and feel note (still applies):** the UI recreates Strava's
+*patterns* (layout, nav, feed, stats hierarchy) with 100% original assets
+— no Strava logos, icons, screenshots, or copy — independent of whether
+their API is ever connected.
 
 ## 4. Data model sketch (all `fit_` prefixed, RLS on everything)
 
@@ -134,7 +132,7 @@ engine's safety rails.
 | 2 | Onboarding | Conversational multi-step questionnaire (all master-prompt sections), progress bar, celebrations, writes profile/goals |
 | 3 | Activities + feed | Manual run/strength logging, Strava-style activity cards, personal feed, streaks |
 | 4 | Dashboard v1 | Today's workout, weekly mileage/volume, stat cards, first Recharts |
-| 5 | Strava sync | OAuth, backfill, webhooks, dedupe vs manual logs, compliance rules from §3 |
+| 5 | ~~Wearable sync~~ | **DROPPED** — see §3. Manual logging (Phase 3) is the only entry path. |
 | 6 | Coach engine (run) | CTL/ATL/TSB, race predictor, adaptive 5K→marathon plan generator |
 | 7 | Strength module | Programs, logging w/ rest timers, PR detection, progression + deloads |
 | 8 | Recovery | Daily check-ins, recovery score, auto load reduction |
