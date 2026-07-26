@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import type { ExerciseBest } from "@/lib/strength/prs";
 
 const CONFETTI = ["🧌", "🔥", "💪", "🏃", "⭐", "🎉"];
 
@@ -18,9 +19,11 @@ function pick<T>(arr: T[]): T {
 
 export function Celebration({
   streak,
+  newPRs = [],
   onDone,
 }: {
   streak: number;
+  newPRs?: ExerciseBest[];
   onDone: () => void;
 }) {
   const message = pick(MESSAGES);
@@ -66,6 +69,18 @@ export function Celebration({
           <p className="mt-1 text-sm text-muted">🔥 {streak}-day streak — keep it up.</p>
         )}
       </div>
+
+      {newPRs.length > 0 && (
+        <div className="space-y-1.5 rounded-xl border border-brand/30 bg-brand-soft p-3">
+          <p className="text-xs font-semibold text-brand">🏆 New PR{newPRs.length > 1 ? "s" : ""}</p>
+          {newPRs.map((pr) => (
+            <p key={pr.exercise} className="text-sm">
+              {pr.exercise} — {pr.weightLb} lb × {pr.reps}
+            </p>
+          ))}
+        </div>
+      )}
+
       <button
         onClick={onDone}
         className="rounded-full bg-brand px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-strong"

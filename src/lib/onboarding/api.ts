@@ -14,6 +14,17 @@ export async function getOnboardingStatus(
   return data.onboarding_completed_at ? "complete" : "incomplete";
 }
 
+export async function getStrengthSplit(userId: string): Promise<string | null> {
+  const sb = getClient();
+  const { data } = await sb
+    .from("fit_onboarding")
+    .select("strength")
+    .eq("user_id", userId)
+    .maybeSingle();
+  const split = (data?.strength as { split?: string } | null)?.split;
+  return split && split !== "None yet" ? split : null;
+}
+
 function toNumberOrNull(value: string): number | null {
   if (!value.trim()) return null;
   const n = Number(value);

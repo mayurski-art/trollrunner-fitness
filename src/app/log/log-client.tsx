@@ -1,14 +1,17 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useMemo, useState } from "react";
 import { useSession } from "@/lib/accounts/session-context";
 import { listActivities, logRun, logStrength } from "@/lib/activities/api";
 import { currentStreak } from "@/lib/activities/stats";
-import type { StrengthSet } from "@/lib/activities/types";
+import type { Activity, StrengthSet } from "@/lib/activities/types";
 import { RUN_DISTANCE_PRESETS, STRENGTH_EXERCISE_PRESETS } from "@/lib/activities/presets";
+import { programFor } from "@/lib/strength/programs";
+import { findNewPRs, type ExerciseBest } from "@/lib/strength/prs";
 import { TextArea, TextField } from "@/components/onboarding/field";
 import { EffortSlider } from "@/components/activities/effort-slider";
+import { RestTimer } from "@/components/activities/rest-timer";
 import { Celebration } from "@/components/activities/celebration";
 
 function nowLocalIso(): string {
@@ -19,9 +22,25 @@ function nowLocalIso(): string {
 
 export function LogClient() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { status, session } = useSession();
-  const [mode, setMode] = useState<"run" | "strength">("run");
+  const splitParam = searchParams.get("split");
+  const dayParam = searchParams.get("day");
+
+  const [mode, setMode] = useState<"run" | "strength">(splitParam ? "strength" : "run");
   const [streak, setStreak] = useState<number | null>(null);
+  const [newPRs, setNewPRs] = useState<ExerciseBest[]>([]);
+
+  const prefill = useMemo(() => {
+    if (!splitParam || dayParam === null) return null;
+    const program = programFor(splitParam);
+    const day = program.days[Number(dayParam)];
+    if (!day) return null;
+    return {
+      title: `${day.day} — ${program.split}`,
+      sets: day.exercises.map((e) => ({ exercise: e.name, weightLb: "", reps: "" })),
+    };
+  }, [splitParam, dayParam]);
 
   if (status === "loading") {
     return <p className="text-sm text-muted">Loading…</p>;
@@ -37,13 +56,16 @@ export function LogClient() {
     );
   }
 
-  async function handleSaved() {
+  async function handleSaved(priorActivities: Activity[], loggedSets?: StrengthSet[]) {
     const rows = await listActivities(session!.userId);
     setStreak(currentStreak(rows));
+    if (loggedSets) setNewPRs(findNewPRs(priorActivities, loggedSets));
   }
 
   if (streak !== null) {
-    return <Celebration streak={streak} onDone={() => router.push("/")} />;
+    return (
+      <Celebration streak={streak} newPRs={newPRs} onDone={() => router.push("/")} />
+    );
   }
 
   return (
@@ -71,9 +93,14 @@ export function LogClient() {
       </div>
 
       {mode === "run" ? (
-        <RunForm userId={session.userId} onSaved={handleSaved} />
+        <RunForm userId={session.userId} onSaved={() => handleSaved([])} />
       ) : (
-        <StrengthForm userId={session.userId} onSaved={handleSaved} />
+        <StrengthForm
+          userId={session.userId}
+          initialTitle={prefill?.title}
+          initialSets={prefill?.sets}
+          onSaved={handleSaved}
+        />
       )}
     </div>
   );
@@ -191,18 +218,22 @@ function RunForm({
 
 function StrengthForm({
   userId,
+  initialTitle,
+  initialSets,
   onSaved,
 }: {
   userId: string;
-  onSaved: () => Promise<void>;
+  initialTitle?: string;
+  initialSets?: StrengthSet[];
+  onSaved: (priorActivities: Activity[], loggedSets: StrengthSet[]) => Promise<void>;
 }) {
-  const [title, setTitle] = useState("Strength workout");
+  const [title, setTitle] = useState(initialTitle ?? "Strength workout");
   const [occurredAt, setOccurredAt] = useState(nowLocalIso());
   const [notes, setNotes] = useState("");
   const [effort, setEffort] = useState<number | null>(null);
-  const [sets, setSets] = useState<StrengthSet[]>([
-    { exercise: "", weightLb: "", reps: "" },
-  ]);
+  const [sets, setSets] = useState<StrengthSet[]>(
+    initialSets && initialSets.length ? initialSets : [{ exercise: "", weightLb: "", reps: "" }]
+  );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -223,6 +254,7 @@ function StrengthForm({
     setBusy(true);
     setError(null);
     try {
+      const priorActivities = await listActivities(userId, 200);
       await logStrength(userId, {
         type: "strength",
         title,
@@ -231,7 +263,7 @@ function StrengthForm({
         notes,
         sets,
       });
-      await onSaved();
+      await onSaved(priorActivities, sets);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not save the workout.");
     } finally {
@@ -304,6 +336,8 @@ function StrengthForm({
           + Add set
         </button>
       </div>
+
+      <RestTimer />
 
       <EffortSlider value={effort} onChange={setEffort} />
 
