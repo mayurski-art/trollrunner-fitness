@@ -14,6 +14,8 @@ import { getBodyProfile } from "@/lib/nutrition/profile";
 import { computeNutritionTargets, type NutritionTargets } from "@/lib/nutrition/targets";
 import { postWorkoutTips, preWorkoutTips, raceFuelingTips, supplementNotes } from "@/lib/nutrition/education";
 import { CoachChat } from "@/components/coach/coach-chat";
+import { COACH_ADMIN_USERNAME } from "@/lib/coach-chat/learned-answers";
+import Link from "next/link";
 
 type CoachData = {
   load: TrainingLoad;
@@ -125,9 +127,14 @@ export function CoachClient() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <h1 className="text-2xl font-bold tracking-tight">Coach</h1>
-        <span className="rounded-full bg-brand-soft px-3 py-1 text-xs font-semibold text-brand">
-          Phase 13 · coach chat
-        </span>
+        {session?.username === COACH_ADMIN_USERNAME && (
+          <Link
+            href="/coach/admin"
+            className="rounded-full bg-brand-soft px-3 py-1 text-xs font-semibold text-brand hover:underline"
+          >
+            Unanswered questions
+          </Link>
+        )}
       </div>
 
       <CoachChat />

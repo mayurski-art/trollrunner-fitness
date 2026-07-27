@@ -1,11 +1,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Activity } from "@/lib/activities/types";
 import { weeklyMileage, currentStreak } from "@/lib/activities/stats";
-import { computeTrainingLoad, interpretLoad } from "@/lib/coach/training-load";
-import { predictRaceTimes } from "@/lib/coach/race-predictor";
-import { generateWeekPlan, GOAL_DISTANCE_MI, todayDayLabel } from "@/lib/coach/plan";
-import { computeNutritionTargets } from "@/lib/nutrition/targets";
-import { averageRecentScore, interpretScore, recoveryLoadMultiplier } from "@/lib/recovery/score";
+import { computeTrainingLoad, interpretLoad, type LoadStatus, type TrainingLoad } from "@/lib/coach/training-load";
+import { predictRaceTimes, type RacePrediction } from "@/lib/coach/race-predictor";
+import { generateWeekPlan, GOAL_DISTANCE_MI, todayDayLabel, type WeekPlan } from "@/lib/coach/plan";
+import { computeNutritionTargets, type NutritionTargets } from "@/lib/nutrition/targets";
+import { averageRecentScore, interpretScore, recoveryLoadMultiplier, type RecoveryStatus } from "@/lib/recovery/score";
 import { weeklyTrend } from "@/lib/activities/trends";
 
 type ActivityRow = {
@@ -21,12 +21,27 @@ type ActivityRow = {
   fit_strength_sets: { exercise: string; weight_lb: number | null; reps: number | null }[];
 };
 
+export type CoachFacts = {
+  goals: string[];
+  weeklyMileage: number;
+  streak: number;
+  load: TrainingLoad;
+  loadStatus: LoadStatus;
+  predictions: RacePrediction[] | null;
+  recoveryScore: number | null;
+  recoveryStatus: RecoveryStatus;
+  plan: WeekPlan;
+  todayWorkout: { type: string; detail: string } | null;
+  nutrition: NutritionTargets;
+  recentActivities: { type: string; title: string; date: string }[];
+};
+
 /**
  * Every fetch here is scoped to source='native' where it touches
  * fit_activities — Strava-compliance rule from docs/DESIGN.md §3. Since
  * wearable sync was dropped (§3), every row is native anyway, but the
  * filter stays so reviving sync later can't silently leak imported data
- * into the LLM context.
+ * into the coach's answers.
  */
 async function fetchActivities(sb: SupabaseClient, userId: string): Promise<Activity[]> {
   const { data } = await sb
@@ -52,7 +67,7 @@ async function fetchActivities(sb: SupabaseClient, userId: string): Promise<Acti
   }));
 }
 
-export async function buildCoachContext(sb: SupabaseClient, userId: string): Promise<string> {
+export async function buildCoachFacts(sb: SupabaseClient, userId: string): Promise<CoachFacts> {
   const [activities, { data: goals }, { data: profile }, { data: recoveryRows }] = await Promise.all([
     fetchActivities(sb, userId),
     sb.from("fit_goals").select("goal_key, target_date").eq("user_id", userId),
@@ -92,7 +107,7 @@ export async function buildCoachContext(sb: SupabaseClient, userId: string): Pro
     baselineWeeklyMileage: loggedAvg,
     recoveryMultiplier: recoveryLoadMultiplier(recoveryScore),
   });
-  const todayPlan = plan.days.find((d) => d.day === todayDayLabel());
+  const todayPlan = plan.days.find((d) => d.day === todayDayLabel()) || null;
 
   const nutrition = computeNutritionTargets(
     {
@@ -105,26 +120,20 @@ export async function buildCoachContext(sb: SupabaseClient, userId: string): Pro
     activities.filter((a) => new Date(a.occurredAt).getTime() >= Date.now() - 7 * 24 * 60 * 60 * 1000).length
   );
 
-  const lines = [
-    `Goals: ${goalRows.length ? goalRows.map((g) => g.goal_key).join(", ") : "none set"}`,
-    `This week's mileage: ${weeklyMileage(activities).toFixed(1)} mi`,
-    `Current logging streak: ${currentStreak(activities)} day(s)`,
-    `Training status: ${loadStatus.label} — ${loadStatus.why}`,
-    `Fitness (CTL) ${load.ctl}, Fatigue (ATL) ${load.atl}, Form (TSB) ${load.tsb}`,
-    predictions
-      ? `Race predictions: ${predictions.map((p) => `${p.label} ~${p.pace}`).join(", ")}`
-      : "No race predictions yet (needs a logged timed run).",
-    `Recovery: ${recoveryScore !== null ? `${recoveryStatus.label} (${recoveryScore}/100)` : "no check-ins logged"}`,
-    `This week's training phase: ${plan.phase} — target ${plan.targetMileage} mi${plan.recoveryNote ? ` (${plan.recoveryNote})` : ""}`,
-    todayPlan ? `Today's prescribed workout: ${todayPlan.type} — ${todayPlan.detail}` : null,
-    `Nutrition targets: ${nutrition.calories} kcal, ${nutrition.proteinG}g protein, ${nutrition.carbsG}g carbs, ${nutrition.fatG}g fat`,
-    `Recent activities (most recent first): ${
-      activities
-        .slice(0, 8)
-        .map((a) => `${a.type} "${a.title}" on ${new Date(a.occurredAt).toLocaleDateString()}`)
-        .join("; ") || "none logged yet"
-    }`,
-  ].filter(Boolean);
-
-  return lines.join("\n");
+  return {
+    goals: goalRows.map((g) => g.goal_key),
+    weeklyMileage: weeklyMileage(activities),
+    streak: currentStreak(activities),
+    load,
+    loadStatus,
+    predictions,
+    recoveryScore,
+    recoveryStatus,
+    plan,
+    todayWorkout: todayPlan ? { type: todayPlan.type, detail: todayPlan.detail } : null,
+    nutrition,
+    recentActivities: activities
+      .slice(0, 8)
+      .map((a) => ({ type: a.type, title: a.title, date: new Date(a.occurredAt).toLocaleDateString() })),
+  };
 }
