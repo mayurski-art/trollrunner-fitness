@@ -264,6 +264,14 @@ export function HomeClient() {
           </div>
         </section>
       )}
+
+      <Link
+        href="/learn"
+        className="flex items-center justify-between rounded-2xl border border-line bg-surface p-4 text-sm transition-colors hover:border-brand"
+      >
+        <span>📚 Learn — running form, recovery, nutrition, and race-day guides</span>
+        <span className="font-semibold text-brand">→</span>
+      </Link>
     </div>
   );
 }

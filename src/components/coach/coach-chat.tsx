@@ -49,6 +49,8 @@ export function CoachChat() {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        aria-controls="coach-chat-panel"
         className="flex w-full items-center justify-between text-left"
       >
         <span className="text-sm font-semibold">🧌 Ask your coach</span>
@@ -56,7 +58,7 @@ export function CoachChat() {
       </button>
 
       {open && (
-        <div className="mt-3 space-y-3">
+        <div id="coach-chat-panel" className="mt-3 space-y-3">
           {messages.length === 0 && (
             <p className="text-sm text-muted">
               Ask about your training load, why the plan looks the way it does, or what to do

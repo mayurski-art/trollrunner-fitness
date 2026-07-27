@@ -97,6 +97,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               }
             )}
             <Link
+              href="/learn"
+              aria-current={isActive(pathname, "/learn") ? "page" : undefined}
+              className={`rounded-full px-3.5 py-1.5 text-sm transition-colors ${
+                isActive(pathname, "/learn")
+                  ? "bg-raised font-semibold text-foreground"
+                  : "text-muted hover:text-foreground"
+              }`}
+            >
+              Learn
+            </Link>
+            <Link
               href="/you"
               aria-current={isActive(pathname, "/you") ? "page" : undefined}
               className={`rounded-full px-3.5 py-1.5 text-sm transition-colors ${
@@ -117,7 +128,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 pb-28 pt-6 md:pb-12">
+      <main id="main-content" className="mx-auto w-full max-w-5xl flex-1 px-4 pb-28 pt-6 md:pb-12">
         {children}
       </main>
 
