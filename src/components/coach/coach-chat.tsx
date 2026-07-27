@@ -31,9 +31,31 @@ export function CoachChat() {
         },
         body: JSON.stringify({ message: text, history: messages }),
       });
-      const data = await res.json();
-      const reply: string = data.reply ?? data.error ?? "Something went wrong — try again.";
-      setMessages((prev) => [...prev, { role: "assistant", text: reply }]);
+
+      const contentType = res.headers.get("content-type") || "";
+      if (contentType.includes("application/json")) {
+        // Flag-gated "not configured" / error responses come back as plain JSON.
+        const data = await res.json();
+        const reply: string = data.reply ?? data.error ?? "Something went wrong — try again.";
+        setMessages((prev) => [...prev, { role: "assistant", text: reply }]);
+        return;
+      }
+
+      if (!res.body) throw new Error("no stream body");
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let reply = "";
+      setMessages((prev) => [...prev, { role: "assistant", text: "" }]);
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        reply += decoder.decode(value, { stream: true });
+        setMessages((prev) => {
+          const next = [...prev];
+          next[next.length - 1] = { role: "assistant", text: reply };
+          return next;
+        });
+      }
     } catch {
       setMessages((prev) => [
         ...prev,
@@ -76,7 +98,9 @@ export function CoachChat() {
                 {m.text}
               </div>
             ))}
-            {busy && <div className="mr-6 rounded-xl bg-raised px-3 py-2 text-sm text-muted">Thinking…</div>}
+            {busy && messages[messages.length - 1]?.role !== "assistant" && (
+              <div className="mr-6 rounded-xl bg-raised px-3 py-2 text-sm text-muted">Thinking…</div>
+            )}
           </div>
           <form onSubmit={handleSubmit} className="flex gap-2">
             <input

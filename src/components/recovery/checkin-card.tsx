@@ -4,6 +4,7 @@ import { useState } from "react";
 import { logRecovery } from "@/lib/recovery/api";
 import { interpretScore, scoreFor } from "@/lib/recovery/score";
 import type { RecoveryLog } from "@/lib/recovery/types";
+import { awardActivityXp } from "@/lib/gamification/xp-bridge";
 
 const SORENESS_EMOJI = ["", "💪", "🙂", "😐", "😣", "🤕"];
 const STRESS_EMOJI = ["", "😌", "🙂", "😐", "😰", "🥴"];
@@ -53,6 +54,7 @@ export function RecoveryCheckin({
   const [soreness, setSoreness] = useState<number | null>(today?.soreness ?? null);
   const [stress, setStress] = useState<number | null>(today?.stress ?? null);
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   if (!editing && today) {
     const score = scoreFor(today);
@@ -77,10 +79,14 @@ export function RecoveryCheckin({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
+    setError(null);
     try {
       await logRecovery(userId, { sleepHours, soreness, stress, notes: "" });
+      void awardActivityXp();
       setEditing(false);
       onLogged();
+    } catch {
+      setError("Couldn't save your check-in — try again in a moment.");
     } finally {
       setBusy(false);
     }
@@ -104,6 +110,7 @@ export function RecoveryCheckin({
       </div>
       <ScaleSlider label="Soreness" emoji={SORENESS_EMOJI} value={soreness} onChange={setSoreness} />
       <ScaleSlider label="Stress" emoji={STRESS_EMOJI} value={stress} onChange={setStress} />
+      {error && <p className="text-xs text-red-400">{error}</p>}
       <button
         type="submit"
         disabled={busy}

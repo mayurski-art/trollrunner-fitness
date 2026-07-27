@@ -55,11 +55,17 @@ export async function POST(req: NextRequest) {
   const context = await buildCoachContext(sb, user.id);
 
   const anthropic = new Anthropic({ apiKey });
-  const response = await anthropic.messages.create({
-    model: "claude-opus-5",
+  const stream = anthropic.messages.stream({
+    model: "claude-sonnet-5",
     max_tokens: 512,
-    output_config: { effort: "medium" },
-    system: SYSTEM_TEMPLATE(username, context),
+    output_config: { effort: "low" },
+    system: [
+      {
+        type: "text",
+        text: SYSTEM_TEMPLATE(username, context),
+        cache_control: { type: "ephemeral" },
+      },
+    ],
     messages: [
       ...history.slice(-10).map((turn) => ({
         role: turn.role,
@@ -69,14 +75,28 @@ export async function POST(req: NextRequest) {
     ],
   });
 
-  if (response.stop_reason === "refusal") {
-    return NextResponse.json({
-      reply: "I can't help with that one — try rephrasing, or ask something else about your training.",
-    });
-  }
+  const encoder = new TextEncoder();
+  const body = new ReadableStream({
+    async start(controller) {
+      try {
+        stream.on("text", (delta) => {
+          controller.enqueue(encoder.encode(delta));
+        });
+        const final = await stream.finalMessage();
+        if (final.stop_reason === "refusal") {
+          controller.enqueue(
+            encoder.encode("I can't help with that one — try rephrasing, or ask something else about your training.")
+          );
+        }
+      } catch {
+        controller.enqueue(encoder.encode("Couldn't reach the coach — try again in a moment."));
+      } finally {
+        controller.close();
+      }
+    },
+  });
 
-  const textBlock = response.content.find((b) => b.type === "text");
-  return NextResponse.json({
-    reply: textBlock?.type === "text" ? textBlock.text : "Sorry, I didn't catch that — try again?",
+  return new Response(body, {
+    headers: { "Content-Type": "text/plain; charset=utf-8" },
   });
 }
