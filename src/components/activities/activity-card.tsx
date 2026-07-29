@@ -60,7 +60,7 @@ export function ActivityCard({ activity }: { activity: Activity }) {
   const stats = activityStats(activity);
 
   return (
-    <article className="flex gap-3 rounded-2xl border border-line bg-surface p-4">
+    <article className="card flex gap-3 rounded-2xl p-4">
       <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-raised text-lg">
         {activityIcon(activity)}
       </span>

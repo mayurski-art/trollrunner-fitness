@@ -24,6 +24,7 @@ import {
   Toggle,
 } from "@/components/onboarding/field";
 import { ProgressBar, StepTransition } from "@/components/onboarding/step-shell";
+import { SkeletonPage } from "@/components/ui/skeleton";
 
 type StepDef = {
   key: string;
@@ -478,7 +479,7 @@ export function OnboardingClient() {
   }
 
   if (status !== "authed") {
-    return <p className="text-sm text-muted">Loading…</p>;
+    return <SkeletonPage />;
   }
 
   if (done) {

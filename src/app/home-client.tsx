@@ -20,6 +20,7 @@ import { RecoveryCheckin } from "@/components/recovery/checkin-card";
 import { getFriendsFeed, type FeedActivity } from "@/lib/social/feed";
 import { getKudosInfo, type KudosInfo } from "@/lib/social/kudos";
 import { FriendActivityCard } from "@/components/social/friend-activity-card";
+import { Skeleton, SkeletonList } from "@/components/ui/skeleton";
 
 const TODAY_INDEX = todayDayLabel();
 
@@ -122,29 +123,43 @@ export function HomeClient() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="text-sm text-muted">Welcome to</p>
-          <h1 className="text-2xl font-bold tracking-tight">TrollRunner Fitness</h1>
+      {status === "authed" ? (
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="text-sm text-muted">Welcome back</p>
+            <h1 className="text-2xl font-bold tracking-tight">TrollRunner Fitness</h1>
+          </div>
+          <span className="rounded-full bg-brand-soft px-3 py-1 text-xs font-semibold text-brand">
+            Phase 11 · social
+          </span>
         </div>
-        <span className="rounded-full bg-brand-soft px-3 py-1 text-xs font-semibold text-brand">
-          Phase 11 · social
-        </span>
-      </div>
+      ) : (
+        <Hero />
+      )}
 
       <OnboardingBanner />
 
-      <section aria-label="Your stats" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {stats.map((stat) => (
-          <div key={stat.label} className="rounded-2xl border border-line bg-surface p-4">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted">
-              {stat.label}
-            </p>
-            <p className="mt-1 font-mono text-2xl font-semibold">{stat.value}</p>
-            <p className="mt-1.5 text-xs text-muted">{stat.note}</p>
-          </div>
-        ))}
-      </section>
+      {status === "authed" && (
+        <section aria-label="Your stats" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {activities === null
+            ? Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="card rounded-2xl p-4">
+                  <Skeleton className="h-3 w-16" />
+                  <Skeleton className="mt-2 h-6 w-20" />
+                  <Skeleton className="mt-2 h-3 w-24" />
+                </div>
+              ))
+            : stats.map((stat) => (
+                <div key={stat.label} className="card card-interactive rounded-2xl p-4">
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted">
+                    {stat.label}
+                  </p>
+                  <p className="mt-1 font-mono text-2xl font-semibold">{stat.value}</p>
+                  <p className="mt-1.5 text-xs text-muted">{stat.note}</p>
+                </div>
+              ))}
+        </section>
+      )}
 
       {status === "authed" && session && (
         <section aria-label="Recovery check-in">
@@ -177,72 +192,60 @@ export function HomeClient() {
         </>
       )}
 
-      <section
-        aria-label="Today's workout"
-        className="rounded-2xl border border-line bg-surface p-5"
-      >
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold">Today&apos;s workout</h2>
-          <Link href="/coach" className="text-xs font-semibold text-brand">
-            Full plan →
-          </Link>
-        </div>
-        {status === "authed" && todayWorkout ? (
-          <>
-            <p className="mt-2 text-sm">
-              <span className="font-medium">{todayWorkout.type}</span>
-              <span className="text-muted"> — {todayWorkout.detail}</span>
-            </p>
-            {todayWorkout.note && (
-              <p className="mt-1 text-xs text-amber-400">{todayWorkout.note}</p>
-            )}
-          </>
-        ) : (
-          <p className="mt-2 text-sm text-muted">
-            {status === "authed"
-              ? "Loading your plan…"
-              : "Sign in to get a workout prescribed for today."}
-          </p>
-        )}
-      </section>
+      {status === "authed" && (
+        <section aria-label="Today's workout" className="card rounded-2xl p-5">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold">Today&apos;s workout</h2>
+            <Link href="/coach" className="text-xs font-semibold text-brand">
+              Full plan →
+            </Link>
+          </div>
+          {todayWorkout ? (
+            <>
+              <p className="mt-2 text-sm">
+                <span className="font-medium">{todayWorkout.type}</span>
+                <span className="text-muted"> — {todayWorkout.detail}</span>
+              </p>
+              {todayWorkout.note && (
+                <p className="mt-1 text-xs text-amber-400">{todayWorkout.note}</p>
+              )}
+            </>
+          ) : (
+            <Skeleton className="mt-2 h-4 w-2/3" />
+          )}
+        </section>
+      )}
 
-      <section aria-label="Recent activities" className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold">Recent activities</h2>
-          {status === "authed" && (
+      {status === "authed" && (
+        <section aria-label="Recent activities" className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold">Recent activities</h2>
             <Link href="/log" className="text-xs font-semibold text-brand">
               Log one →
             </Link>
-          )}
-        </div>
+          </div>
 
-        {status !== "authed" ? (
-          <div className="rounded-2xl border border-line bg-surface p-5">
-            <p className="text-sm text-muted">
-              Sign in to start logging runs and workouts and get a plan built
-              around them.
-            </p>
-          </div>
-        ) : activities === null ? (
-          <p className="text-sm text-muted">Loading…</p>
-        ) : activities.length === 0 ? (
-          <div className="rounded-2xl border border-line bg-surface p-5">
-            <p className="text-sm text-muted">
-              Nothing logged yet.{" "}
-              <Link href="/log" className="font-semibold text-brand">
-                Log your first activity
-              </Link>
-              .
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {activities.slice(0, 8).map((a) => (
-              <ActivityCard key={a.id} activity={a} />
-            ))}
-          </div>
-        )}
-      </section>
+          {activities === null ? (
+            <SkeletonList count={3} />
+          ) : activities.length === 0 ? (
+            <div className="card rounded-2xl p-5">
+              <p className="text-sm text-muted">
+                Nothing logged yet.{" "}
+                <Link href="/log" className="font-semibold text-brand">
+                  Log your first activity
+                </Link>
+                .
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {activities.slice(0, 8).map((a) => (
+                <ActivityCard key={a.id} activity={a} />
+              ))}
+            </div>
+          )}
+        </section>
+      )}
 
       {status === "authed" && session && friendsFeed && friendsFeed.length > 0 && (
         <section aria-label="Friends' activity" className="space-y-3">
@@ -267,7 +270,7 @@ export function HomeClient() {
 
       <Link
         href="/learn"
-        className="flex items-center justify-between rounded-2xl border border-line bg-surface p-4 text-sm transition-colors hover:border-brand"
+        className="card card-interactive flex items-center justify-between rounded-2xl p-4 text-sm"
       >
         <span>📚 Learn — running form, recovery, nutrition, and race-day guides</span>
         <span className="font-semibold text-brand">→</span>
@@ -276,9 +279,40 @@ export function HomeClient() {
   );
 }
 
+function Hero() {
+  return (
+    <section className="card overflow-hidden rounded-3xl p-8 sm:p-10">
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-soft px-3 py-1 text-xs font-semibold text-brand">
+        🧌 Built for actual runners
+      </span>
+      <h1 className="mt-4 max-w-lg text-3xl font-bold tracking-tight sm:text-4xl">
+        Training that adapts to how your week actually goes.
+      </h1>
+      <p className="mt-3 max-w-md text-sm text-muted">
+        Log runs and lifts, get a plan built around your goal race, and check
+        in on recovery — one account across every TrollRunner site.
+      </p>
+      <div className="mt-6 flex flex-wrap gap-3">
+        <Link
+          href="/you"
+          className="rounded-full bg-brand px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-strong"
+        >
+          Get started
+        </Link>
+        <Link
+          href="/learn"
+          className="rounded-full border border-line px-5 py-2.5 text-sm font-semibold text-foreground transition-colors hover:border-brand"
+        >
+          See what&apos;s inside
+        </Link>
+      </div>
+    </section>
+  );
+}
+
 function MiniStat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-line bg-surface p-4">
+    <div className="card rounded-2xl p-4">
       <p className="text-xs font-medium uppercase tracking-wide text-muted">{label}</p>
       <p className="mt-1 font-mono text-xl font-semibold">{value}</p>
     </div>

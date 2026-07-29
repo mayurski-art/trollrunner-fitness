@@ -60,7 +60,7 @@ export function RecoveryCheckin({
     const score = scoreFor(today);
     const status = interpretScore(score);
     return (
-      <div className="rounded-2xl border border-line bg-surface p-4">
+      <div className="card rounded-2xl p-4">
         <div className="flex items-center justify-between">
           <p className="text-sm font-semibold">Today&apos;s recovery: {status.label}</p>
           <button
@@ -93,7 +93,7 @@ export function RecoveryCheckin({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3 rounded-2xl border border-line bg-surface p-4">
+    <form onSubmit={handleSubmit} className="space-y-3 card rounded-2xl p-4">
       <p className="text-sm font-semibold">How are you feeling today?</p>
       <div>
         <label htmlFor="sleep-hours" className="mb-1 block text-xs font-medium text-muted">

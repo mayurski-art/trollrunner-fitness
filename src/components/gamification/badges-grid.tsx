@@ -4,7 +4,7 @@ export function BadgesGrid({ badges }: { badges: Badge[] }) {
   const earnedCount = badges.filter((b) => b.earned).length;
 
   return (
-    <div className="rounded-2xl border border-line bg-surface p-4">
+    <div className="card rounded-2xl p-4">
       <div className="flex items-center justify-between">
         <p className="text-sm font-semibold">Badges</p>
         <span className="text-xs text-muted">

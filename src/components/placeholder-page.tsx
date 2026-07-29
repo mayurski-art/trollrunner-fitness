@@ -15,7 +15,7 @@ export function PlaceholderPage({
           {phase}
         </span>
       </div>
-      <div className="rounded-2xl border border-line bg-surface p-5">
+      <div className="card rounded-2xl p-5">
         <p className="text-sm text-muted">{description}</p>
       </div>
     </div>

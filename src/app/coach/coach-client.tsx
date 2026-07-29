@@ -20,6 +20,7 @@ import { CoachChat } from "@/components/coach/coach-chat";
 import { COACH_ADMIN_USERNAME } from "@/lib/coach-chat/learned-answers";
 import type { Activity } from "@/lib/activities/types";
 import Link from "next/link";
+import { SkeletonPage } from "@/components/ui/skeleton";
 
 const TONE_STYLES: Record<LoadStatus["tone"], string> = {
   good: "bg-brand-soft text-brand",
@@ -60,7 +61,7 @@ export function CoachClient() {
   }, [status, session]);
 
   if (status === "loading") {
-    return <p className="text-sm text-muted">Loading…</p>;
+    return <SkeletonPage />;
   }
   if (status !== "authed" || !session) {
     return (
@@ -120,7 +121,7 @@ export function CoachClient() {
 
       <CoachChat />
 
-      <section className="rounded-2xl border border-line bg-surface p-5">
+      <section className="card rounded-2xl p-5">
         {load && loadStatus ? (
           <>
             <div className="flex items-center justify-between">
@@ -141,7 +142,7 @@ export function CoachClient() {
         )}
       </section>
 
-      <section className="rounded-2xl border border-line bg-surface p-5">
+      <section className="card rounded-2xl p-5">
         {recoveryStatus ? (
           <>
             <div className="flex items-center justify-between">
@@ -161,7 +162,7 @@ export function CoachClient() {
         )}
       </section>
 
-      <section className="rounded-2xl border border-line bg-surface p-5">
+      <section className="card rounded-2xl p-5">
         {activities ? (
           <>
             <h2 className="text-sm font-semibold">Race predictions</h2>
@@ -190,7 +191,7 @@ export function CoachClient() {
         )}
       </section>
 
-      <section className="rounded-2xl border border-line bg-surface p-5">
+      <section className="card rounded-2xl p-5">
         {plan ? (
           <>
             <div className="flex flex-wrap items-center justify-between gap-2">
@@ -222,7 +223,7 @@ export function CoachClient() {
         )}
       </section>
 
-      <section className="rounded-2xl border border-line bg-surface p-5">
+      <section className="card rounded-2xl p-5">
         {nutrition ? (
           <>
             <h2 className="text-sm font-semibold">Nutrition</h2>

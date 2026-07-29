@@ -44,7 +44,7 @@ export function RestTimer() {
   const pct = remaining !== null ? ((duration - remaining) / duration) * 100 : 0;
 
   return (
-    <div className="rounded-2xl border border-line bg-surface p-4">
+    <div className="card rounded-2xl p-4">
       <p className="text-xs font-medium text-muted">Rest timer</p>
 
       {remaining === null ? (

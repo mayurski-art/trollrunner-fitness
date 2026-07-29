@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { weeklyLeaderboard, type LeaderboardRow } from "@/lib/social/leaderboard";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export function LeaderboardCard({ userId }: { userId: string }) {
   const [rows, setRows] = useState<LeaderboardRow[] | null>(null);
@@ -17,12 +18,15 @@ export function LeaderboardCard({ userId }: { userId: string }) {
   }, [userId]);
 
   return (
-    <div className="rounded-2xl border border-line bg-surface p-4">
+    <div className="card rounded-2xl p-4">
       <p className="text-sm font-semibold">Weekly leaderboard</p>
       <p className="text-xs text-muted">You + people you follow, running mileage this week</p>
       <div className="mt-3 space-y-1.5">
         {rows === null ? (
-          <p className="text-sm text-muted">Loading…</p>
+          <div className="space-y-1.5" aria-hidden="true">
+            <Skeleton className="h-8 w-full" />
+            <Skeleton className="h-8 w-full" />
+          </div>
         ) : rows.length <= 1 ? (
           <p className="text-sm text-muted">Follow people to see a leaderboard here.</p>
         ) : (

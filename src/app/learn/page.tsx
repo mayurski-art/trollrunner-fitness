@@ -29,7 +29,7 @@ export default function LearnPage() {
           <Link
             key={article.slug}
             href={`/learn/${article.slug}`}
-            className="rounded-2xl border border-line bg-surface p-5 transition-colors hover:border-brand"
+            className="card card-interactive rounded-2xl p-5"
           >
             <span className="text-xs font-semibold uppercase tracking-wide text-brand">
               {article.category}

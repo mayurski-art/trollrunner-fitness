@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useSession } from "@/lib/accounts/session-context";
 import { getStrengthSplit } from "@/lib/onboarding/api";
 import { AVAILABLE_SPLITS, programFor } from "@/lib/strength/programs";
+import { SkeletonPage } from "@/components/ui/skeleton";
 
 export function TrainingClient() {
   const { status, session } = useSession();
@@ -26,7 +27,7 @@ export function TrainingClient() {
   }, [status, session]);
 
   if (status === "loading") {
-    return <p className="text-sm text-muted">Loading…</p>;
+    return <SkeletonPage />;
   }
   if (status !== "authed") {
     return (
@@ -48,7 +49,7 @@ export function TrainingClient() {
         </span>
       </div>
 
-      <section className="rounded-2xl border border-line bg-surface p-5">
+      <section className="card rounded-2xl p-5">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-sm font-semibold">{program.split}</h2>
           {loaded && !split && (
@@ -82,7 +83,7 @@ export function TrainingClient() {
 
       <div className="grid gap-3 sm:grid-cols-2">
         {program.days.map((day, i) => (
-          <div key={day.day} className="rounded-2xl border border-line bg-surface p-4">
+          <div key={day.day} className="card card-interactive rounded-2xl p-4">
             <div className="flex items-baseline justify-between gap-2">
               <h3 className="font-semibold">{day.day}</h3>
               <span className="text-xs text-muted">{day.focus}</span>

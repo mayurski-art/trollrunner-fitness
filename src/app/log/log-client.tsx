@@ -15,6 +15,7 @@ import { TextArea, TextField } from "@/components/onboarding/field";
 import { EffortSlider } from "@/components/activities/effort-slider";
 import { RestTimer } from "@/components/activities/rest-timer";
 import { Celebration } from "@/components/activities/celebration";
+import { SkeletonPage } from "@/components/ui/skeleton";
 
 function nowLocalIso(): string {
   const d = new Date();
@@ -57,7 +58,7 @@ export function LogClient() {
   }, [splitParam, dayParam]);
 
   if (status === "loading") {
-    return <p className="text-sm text-muted">Loading…</p>;
+    return <SkeletonPage />;
   }
   if (status === "anon" || !session) {
     return (

@@ -36,7 +36,7 @@ export function Celebration({
   return (
     <motion.div
       role="status"
-      className="relative mx-auto max-w-sm space-y-5 overflow-hidden rounded-2xl border border-line bg-surface p-8 text-center"
+      className="relative mx-auto max-w-sm space-y-5 overflow-hidden card rounded-2xl p-8 text-center"
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.25 }}

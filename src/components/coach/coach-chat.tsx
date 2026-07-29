@@ -46,7 +46,7 @@ export function CoachChat() {
   }
 
   return (
-    <section className="rounded-2xl border border-line bg-surface p-5">
+    <section className="card rounded-2xl p-5">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}

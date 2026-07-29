@@ -7,6 +7,7 @@ import { dailyTrend, monthlyTrend, weeklyTrend } from "@/lib/activities/trends";
 import type { Activity } from "@/lib/activities/types";
 import { computePRTimeline } from "@/lib/strength/prs";
 import { TrendChart } from "@/components/charts/trend-chart";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type Range = "week" | "month" | "year" | "custom";
 
@@ -65,7 +66,12 @@ export function AnalyticsSection({ userId }: { userId: string }) {
   );
 
   if (!activities) {
-    return <p className="text-sm text-muted">Loading your stats…</p>;
+    return (
+      <div className="space-y-3" aria-hidden="true">
+        <Skeleton className="h-4 w-24" />
+        <Skeleton className="h-40 w-full" />
+      </div>
+    );
   }
 
   return (
@@ -108,13 +114,13 @@ export function AnalyticsSection({ userId }: { userId: string }) {
         )}
 
         <div className="grid gap-3 sm:grid-cols-2">
-          <div className="rounded-2xl border border-line bg-surface p-4">
+          <div className="card rounded-2xl p-4">
             <h3 className="text-sm font-semibold">Mileage</h3>
             <div className="mt-2">
               <TrendChart data={trendPoints.map((p) => ({ label: p.label, value: p.mileage }))} unit="mi" />
             </div>
           </div>
-          <div className="rounded-2xl border border-line bg-surface p-4">
+          <div className="card rounded-2xl p-4">
             <h3 className="text-sm font-semibold">Strength volume</h3>
             <div className="mt-2">
               <TrendChart data={trendPoints.map((p) => ({ label: p.label, value: p.volume }))} unit="lb" />
@@ -157,7 +163,7 @@ export function AnalyticsSection({ userId }: { userId: string }) {
             No PRs yet — log strength sets with weight and reps to start tracking records.
           </p>
         ) : (
-          <div className="divide-y divide-line rounded-2xl border border-line bg-surface">
+          <div className="divide-y divide-line card rounded-2xl">
             {prTimeline.slice(0, 15).map((pr, i) => (
               <div key={`${pr.exercise}-${pr.achievedAt}-${i}`} className="flex items-center justify-between gap-3 p-3 text-sm">
                 <div>
@@ -186,7 +192,7 @@ export function AnalyticsSection({ userId }: { userId: string }) {
 
 function MiniStat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-line bg-surface p-4">
+    <div className="card rounded-2xl p-4">
       <p className="text-xs font-medium uppercase tracking-wide text-muted">{label}</p>
       <p className="mt-1 font-mono text-lg font-semibold">{value}</p>
     </div>

@@ -69,7 +69,7 @@ export function FindPeople({ userId }: { userId: string }) {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-2xl border border-line bg-surface p-4">
+      <div className="card rounded-2xl p-4">
         <p className="text-xs font-medium text-muted">Find people</p>
         <input
           value={query}
@@ -93,7 +93,7 @@ export function FindPeople({ userId }: { userId: string }) {
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
-        <div className="rounded-2xl border border-line bg-surface p-4">
+        <div className="card rounded-2xl p-4">
           <p className="text-xs font-medium text-muted">Following ({following.length})</p>
           <div className="mt-2 space-y-2">
             {following.length === 0 ? (
@@ -111,7 +111,7 @@ export function FindPeople({ userId }: { userId: string }) {
             )}
           </div>
         </div>
-        <div className="rounded-2xl border border-line bg-surface p-4">
+        <div className="card rounded-2xl p-4">
           <p className="text-xs font-medium text-muted">Followers ({followers.length})</p>
           <div className="mt-2 space-y-2">
             {followers.length === 0 ? (

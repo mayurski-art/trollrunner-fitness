@@ -29,7 +29,7 @@ export function HumorToggle({ userId }: { userId: string }) {
   }
 
   return (
-    <div className="flex items-center justify-between rounded-2xl border border-line bg-surface p-4">
+    <div className="flex items-center justify-between card rounded-2xl p-4">
       <div>
         <p className="text-sm font-semibold">Troll humor</p>
         <p className="text-xs text-muted">

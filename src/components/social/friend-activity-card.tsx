@@ -58,7 +58,7 @@ export function FriendActivityCard({
   }
 
   return (
-    <article className="rounded-2xl border border-line bg-surface p-4">
+    <article className="card rounded-2xl p-4">
       <div className="flex gap-3">
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-raised text-lg">
           {activity.owner.avatarUrl ? (

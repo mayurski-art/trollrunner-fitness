@@ -25,7 +25,7 @@ export function EffortSlider({
   const level = levelFor(current);
 
   return (
-    <div className="rounded-2xl border border-line bg-surface p-4">
+    <div className="card rounded-2xl p-4">
       <div className="flex items-center justify-between">
         <p className="text-xs font-medium text-muted">How did it feel?</p>
         {value !== null && (

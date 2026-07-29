@@ -10,6 +10,7 @@ import {
   COACH_ADMIN_USERNAME,
   type PendingQuestion,
 } from "@/lib/coach-chat/learned-answers";
+import { SkeletonPage, SkeletonList } from "@/components/ui/skeleton";
 
 export function CoachAdminClient() {
   const { status, session } = useSession();
@@ -36,7 +37,7 @@ export function CoachAdminClient() {
   }, [status]);
 
   if (status === "loading") {
-    return <p className="text-sm text-muted">Loading…</p>;
+    return <SkeletonPage />;
   }
 
   if (status !== "authed" || !session || session.username !== COACH_ADMIN_USERNAME) {
@@ -88,14 +89,14 @@ export function CoachAdminClient() {
 
       {error && <p className="text-sm text-red-400">{error}</p>}
 
-      {questions === null && <p className="text-sm text-muted">Loading queue…</p>}
+      {questions === null && <SkeletonList count={3} />}
       {questions !== null && questions.length === 0 && (
         <p className="text-sm text-muted">Nothing waiting — the queue is empty.</p>
       )}
 
       <div className="space-y-4">
         {questions?.map((q) => (
-          <div key={q.id} className="rounded-2xl border border-line bg-surface p-4">
+          <div key={q.id} className="card rounded-2xl p-4">
             <p className="text-sm font-semibold">{q.question}</p>
             <p className="mt-1 text-xs text-muted">
               Asked {new Date(q.createdAt).toLocaleString()}

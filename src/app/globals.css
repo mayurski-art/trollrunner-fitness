@@ -29,6 +29,65 @@
 
 body {
   background: var(--background);
+  background-image:
+    radial-gradient(ellipse 900px 500px at 15% -10%, rgba(255, 90, 31, 0.10), transparent 60%),
+    radial-gradient(ellipse 700px 500px at 100% 0%, rgba(255, 90, 31, 0.05), transparent 55%);
+  background-repeat: no-repeat;
+  background-attachment: fixed;
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+/* Card surface with real depth — replaces flat `border-line bg-surface` pairs. */
+.card {
+  background: linear-gradient(180deg, var(--raised), var(--surface));
+  border: 0.5px solid var(--line);
+  box-shadow:
+    0 1px 0 0 rgba(255, 255, 255, 0.03) inset,
+    0 8px 20px -12px rgba(0, 0, 0, 0.6);
+}
+
+.card-interactive {
+  transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.card-interactive:hover {
+  border-color: rgba(255, 90, 31, 0.35);
+  box-shadow:
+    0 1px 0 0 rgba(255, 255, 255, 0.03) inset,
+    0 12px 28px -14px rgba(0, 0, 0, 0.7);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .card-interactive:hover {
+    transform: translateY(-1px);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton {
+  background-image: linear-gradient(
+    90deg,
+    var(--raised) 0%,
+    rgba(255, 255, 255, 0.06) 50%,
+    var(--raised) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+    background-image: none;
+    background-color: var(--raised);
+  }
 }

@@ -11,12 +11,13 @@ import { listActivities } from "@/lib/activities/api";
 import { computeBadges, type Badge } from "@/lib/gamification/badges";
 import { BadgesGrid } from "@/components/gamification/badges-grid";
 import { HumorToggle } from "@/components/gamification/humor-toggle";
+import { SkeletonPage } from "@/components/ui/skeleton";
 
 export function YouClient() {
   const { status, session } = useSession();
 
   if (status === "loading") {
-    return <p className="text-sm text-muted">Loading your profile…</p>;
+    return <SkeletonPage />;
   }
 
   if (status === "authed" && session) {
@@ -61,7 +62,7 @@ function ProfileView() {
         </span>
       </div>
 
-      <section className="flex items-center gap-4 rounded-2xl border border-line bg-surface p-5">
+      <section className="card flex items-center gap-4 rounded-2xl p-5">
         <span className="flex h-14 w-14 items-center justify-center rounded-full bg-raised text-2xl">
           🧌
         </span>
@@ -73,7 +74,7 @@ function ProfileView() {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-line bg-surface p-5">
+      <section className="card rounded-2xl p-5">
         <h2 className="text-sm font-semibold">Your training profile</h2>
         {onboardingComplete === false ? (
           <>
