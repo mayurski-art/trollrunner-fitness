@@ -148,8 +148,8 @@ function PersonRow({
   return (
     <div className="flex items-center justify-between gap-2">
       <span className="flex items-center gap-2 text-sm">
-        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-raised text-sm">
-          🧌
+        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-raised text-sm font-bold">
+          {person.username.charAt(0).toUpperCase()}
         </span>
         {person.username}
       </span>

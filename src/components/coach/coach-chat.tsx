@@ -54,7 +54,7 @@ export function CoachChat() {
         aria-controls="coach-chat-panel"
         className="flex w-full items-center justify-between text-left"
       >
-        <span className="text-sm font-semibold">🧌 Ask your coach</span>
+        <span className="text-sm font-semibold">Ask your coach</span>
         <span className="text-xs text-muted">{open ? "Hide" : "Chat"}</span>
       </button>
 

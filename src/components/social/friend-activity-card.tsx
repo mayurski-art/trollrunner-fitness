@@ -65,7 +65,7 @@ export function FriendActivityCard({
             // eslint-disable-next-line @next/next/no-img-element
             <img src={activity.owner.avatarUrl} alt="" className="h-full w-full rounded-full object-cover" />
           ) : (
-            "🧌"
+            <span className="font-bold">{activity.owner.username.charAt(0).toUpperCase()}</span>
           )}
         </span>
         <div className="min-w-0 flex-1">

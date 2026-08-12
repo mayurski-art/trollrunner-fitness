@@ -283,7 +283,7 @@ function Hero() {
   return (
     <section className="card overflow-hidden rounded-3xl p-8 sm:p-10">
       <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-soft px-3 py-1 text-xs font-semibold text-brand">
-        🧌 Built for actual runners
+        Built for actual runners
       </span>
       <h1 className="mt-4 max-w-lg text-3xl font-bold tracking-tight sm:text-4xl">
         Training that adapts to how your week actually goes.

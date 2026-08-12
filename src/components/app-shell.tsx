@@ -116,7 +116,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   : "text-muted hover:text-foreground"
               }`}
             >
-              {status === "authed" && session ? `🧌 ${session.username}` : "Sign in"}
+              {status === "authed" && session ? `` : "Sign in"}
             </Link>
             <Link
               href="/log"

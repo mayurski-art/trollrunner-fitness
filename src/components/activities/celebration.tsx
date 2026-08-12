@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import type { ExerciseBest } from "@/lib/strength/prs";
 import { STREAK_MILESTONES } from "@/lib/gamification/badges";
 
-const CONFETTI = ["🧌", "🔥", "💪", "🏃", "⭐", "🎉"];
+const CONFETTI = ["🔥", "💪", "🏃", "⭐", "🎉"];
 
 const MESSAGES = [
   "Logged. The troll approves.",
@@ -68,7 +68,7 @@ export function Celebration({
         animate={{ scale: 1 }}
         transition={{ type: "spring", stiffness: 260, damping: 12, delay: 0.1 }}
       >
-        {humor ? "🧌" : "✅"}
+        {humor ? "🎉" : "✅"}
       </motion.p>
       <div>
         <p className="text-lg font-bold tracking-tight">{message}</p>

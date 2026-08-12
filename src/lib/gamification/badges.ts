@@ -24,7 +24,7 @@ export function computeBadges(activities: Activity[]): Badge[] {
   const longestRun = Math.max(0, ...activities.filter((a) => a.type === "run").map((a) => a.distanceMi || 0));
 
   return [
-    { id: "first_log", label: "First activity logged", emoji: "🧌", earned: activities.length >= 1 },
+    { id: "first_log", label: "First activity logged", emoji: "🏅", earned: activities.length >= 1 },
     { id: "ten_logs", label: "10 activities logged", emoji: "📈", earned: activities.length >= 10 },
     { id: "fifty_logs", label: "50 activities logged", emoji: "🏅", earned: activities.length >= 50 },
     { id: "first_run", label: "First run", emoji: "🏃", earned: runCount >= 1 },

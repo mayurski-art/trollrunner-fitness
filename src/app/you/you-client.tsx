@@ -63,8 +63,8 @@ function ProfileView() {
       </div>
 
       <section className="card flex items-center gap-4 rounded-2xl p-5">
-        <span className="flex h-14 w-14 items-center justify-center rounded-full bg-raised text-2xl">
-          🧌
+        <span className="flex h-14 w-14 items-center justify-center rounded-full bg-raised text-2xl font-bold">
+          {session.username.charAt(0).toUpperCase()}
         </span>
         <div>
           <p className="text-lg font-semibold">{session.username}</p>

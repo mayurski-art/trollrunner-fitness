@@ -485,7 +485,7 @@ export function OnboardingClient() {
   if (done) {
     return (
       <div className="mx-auto max-w-md space-y-4 py-12 text-center">
-        <p className="text-5xl">🧌🎉</p>
+        <p className="text-5xl">🎉</p>
         <h1 className="text-2xl font-bold tracking-tight">You&apos;re all set.</h1>
         <p className="text-sm text-muted">
           Your coach now knows the real you. The training and coach engines

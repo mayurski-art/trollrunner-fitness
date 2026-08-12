@@ -28,7 +28,7 @@ export function OnboardingBanner() {
       className="flex items-center justify-between gap-3 rounded-2xl border border-brand/30 bg-brand-soft px-4 py-3 text-sm transition-colors hover:border-brand"
     >
       <span className="font-medium text-foreground">
-        🧌 Tell us about your goals — takes about 3 minutes.
+        Tell us about your goals — takes about 3 minutes.
       </span>
       <span className="shrink-0 font-semibold text-brand">Start →</span>
     </Link>

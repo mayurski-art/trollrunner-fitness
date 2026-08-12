@@ -33,7 +33,7 @@ export function HumorToggle({ userId }: { userId: string }) {
       <div>
         <p className="text-sm font-semibold">Troll humor</p>
         <p className="text-xs text-muted">
-          Confetti, one-liners, and 🧌 flair on celebrations. Turn off for a
+          Confetti, one-liners, and extra flair on celebrations. Turn off for a
           more no-nonsense tool.
         </p>
       </div>

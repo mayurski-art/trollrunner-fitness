@@ -28,7 +28,7 @@ function topSet(activity: Activity): string | null {
 }
 
 export function activityIcon(activity: Activity): string {
-  return activity.type === "run" ? "🏃" : activity.type === "strength" ? "🏋️" : "🧌";
+  return activity.type === "run" ? "🏃" : activity.type === "strength" ? "🏋️" : "⭐";
 }
 
 export function activityStats(activity: Activity): string[] {
