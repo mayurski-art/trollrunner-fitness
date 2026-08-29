@@ -46,6 +46,7 @@ function readSsoCookie(): { access_token: string; refresh_token: string } | null
 
 export async function adoptSsoCookie() {
   if (!ssoCookieDomain()) return;
+  keepSsoCookieFresh();
   const sb = getClient();
   const { data } = await sb.auth.getSession();
   if (data?.session) return; // this origin already has its own session
@@ -56,4 +57,24 @@ export async function adoptSsoCookie() {
   } catch {
     // stale/expired — ignore
   }
+}
+
+let watching = false;
+
+/**
+ * Supabase refresh tokens rotate and are single-use — the cookie written at
+ * login time goes stale the instant this tab's session silently refreshes
+ * (routine; access tokens are short-lived), leaving every *other* device
+ * stuck adopting an already-consumed refresh token. Keeping the cookie in
+ * lockstep with every auth state change (not just explicit login/logout)
+ * is what makes cross-device SSO actually stay alive instead of working
+ * once and then failing on the next device to try it.
+ */
+export function keepSsoCookieFresh() {
+  if (watching || !ssoCookieDomain()) return;
+  watching = true;
+  const sb = getClient();
+  sb.auth.onAuthStateChange((_event, session) => {
+    writeSsoCookie(session);
+  });
 }
