@@ -1,13 +1,12 @@
 import type { Activity } from "@/lib/activities/types";
 
 /**
- * Session load via the session-RPE method (Foster et al.): duration (min) ×
- * effort (RPE 1-10). No heart-rate data exists in manual logging, so this is
- * the standard HR-free substitute for TRIMP.
+ * Training load, in COROS TRIMP units.
  *
- * Runs carry a real duration. Strength sessions don't collect one (Phase 3
- * scope), so duration is estimated at ~4 min/set (work + rest) — a documented
- * heuristic, not a precise figure.
+ * A session's load comes from the device wherever one recorded it — COROS
+ * computes TRIMP from heart rate and duration, which beats anything derivable
+ * here. Sessions without a device figure (strength work) fall back to
+ * session-RPE (Foster et al.: duration x RPE), scaled onto the same units.
  */
 /**
  * Strength sessions do not record a duration (Phase 3 scope), so it is
@@ -29,6 +28,24 @@ function sessionDurationMin(activity: Activity): number {
     return Math.min(activity.sets.length * STRENGTH_MIN_PER_SET, STRENGTH_MAX_MIN);
   }
   return 0;
+}
+
+/**
+ * A device-computed TRIMP training load recorded in an activity's notes, e.g.
+ * "training load 422". COROS derives it from heart rate and duration, which is
+ * strictly better evidence than anything this app can infer from pace alone —
+ * so when it is present it is used directly instead of being re-estimated.
+ *
+ * COROS bands, for reference: Low 0-111 (recovery), Medium 112-218 (tempo /
+ * threshold), High 218+ (HIIT or long slow distance).
+ */
+const DEVICE_LOAD_RE = /training load (\d+(?:\.\d+)?)/i;
+
+export function deviceLoadFrom(activity: Activity): number | null {
+  const match = activity.notes?.match(DEVICE_LOAD_RE);
+  if (!match) return null;
+  const value = Number(match[1]);
+  return Number.isFinite(value) && value >= 0 ? value : null;
 }
 
 /**
@@ -57,8 +74,26 @@ function estimatedEffort(activity: Activity): number {
   return 5; // strength: moderate by default
 }
 
+/**
+ * Converts a session-RPE score into the same units as COROS TRIMP.
+ *
+ * Measured against 23 sessions that carry both numbers, TRIMP is about 0.39x
+ * our duration x RPE score (median). The two are not the same shape — TRIMP is
+ * non-linear in intensity, so the per-session ratio ranges roughly 0.22-0.69 —
+ * but without heart rate a single factor is the honest approximation. It exists
+ * only so estimated sessions (strength work) sit on the same scale as measured
+ * ones; mixing raw values would let whichever kind is more common dominate the
+ * series for no physiological reason.
+ */
+const RPE_TO_TRIMP = 0.39;
+
 function sessionLoad(activity: Activity): number {
-  return sessionDurationMin(activity) * estimatedEffort(activity);
+  // A device-measured TRIMP beats anything inferred here — it is built from
+  // heart rate, which this app never sees.
+  const measured = deviceLoadFrom(activity);
+  if (measured !== null) return measured;
+
+  return sessionDurationMin(activity) * estimatedEffort(activity) * RPE_TO_TRIMP;
 }
 
 function dayKey(iso: string): string {
@@ -251,4 +286,23 @@ export function interpretLoad(load: TrainingLoad, device?: DeviceStatus | null):
     tone: "good",
     why: "Fitness and fatigue are balanced — steady, sustainable training load.",
   };
+}
+
+/**
+ * COROS training-load bands for a single session, from their documentation.
+ * Used to describe a workout the way the user's watch describes it.
+ */
+export type SessionLoadBand = {
+  level: "Low" | "Medium" | "High";
+  impact: string;
+};
+
+export function sessionLoadBand(load: number): SessionLoadBand {
+  if (load <= 111) {
+    return { level: "Low", impact: "Helps with recovery or maintaining fitness, like a recovery run." };
+  }
+  if (load <= 218) {
+    return { level: "Medium", impact: "Improves fitness — tempo or threshold training." };
+  }
+  return { level: "High", impact: "Improves fitness efficiently — HIIT or long slow distance." };
 }

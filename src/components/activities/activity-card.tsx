@@ -1,4 +1,5 @@
 import type { Activity } from "@/lib/activities/types";
+import { deviceLoadFrom, sessionLoadBand } from "@/lib/coach/training-load";
 
 export const EFFORT_EMOJI: Record<number, string> = {
   1: "😴", 2: "😴", 3: "🙂", 4: "🙂", 5: "😅", 6: "😅", 7: "😤", 8: "😤", 9: "🥵", 10: "🥵",
@@ -59,6 +60,14 @@ export function activityWhen(activity: Activity): string {
 export function ActivityCard({ activity }: { activity: Activity }) {
   const stats = activityStats(activity);
 
+  const deviceLoad = deviceLoadFrom(activity);
+  const band = sessionLoadBand(deviceLoad ?? 0);
+  // The load is shown as its own badge, so drop it from the notes line rather
+  // than printing the same number twice.
+  const displayNotes = deviceLoad === null
+    ? activity.notes
+    : activity.notes.replace(/,?s*training load d+(?:.d+)?/i, "").replace(/s{2,}/g, " ").trim();
+
   return (
     <article className="card flex gap-3 rounded-2xl p-4">
       <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-raised text-lg">
@@ -79,8 +88,16 @@ export function ActivityCard({ activity }: { activity: Activity }) {
         {stats.length > 0 && (
           <p className="mt-0.5 font-mono text-sm text-muted">{stats.join(" · ")}</p>
         )}
-        {activity.notes && (
-          <p className="mt-1 text-sm text-muted">{activity.notes}</p>
+        {deviceLoad !== null && (
+          <p className="mt-1 text-xs">
+            <span className="rounded-full bg-raised px-2 py-0.5 font-mono text-muted">
+              load {deviceLoad} · {band.level}
+            </span>
+            <span className="ml-1.5 text-muted">{band.impact}</span>
+          </p>
+        )}
+        {displayNotes && (
+          <p className="mt-1 text-sm text-muted">{displayNotes}</p>
         )}
       </div>
     </article>
