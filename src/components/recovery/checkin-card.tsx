@@ -49,14 +49,32 @@ export function RecoveryCheckin({
   today: RecoveryLog | null;
   onLogged: () => void;
 }) {
-  const [editing, setEditing] = useState(!today);
-  const [sleepHours, setSleepHours] = useState(today?.sleepHours?.toString() ?? "");
-  const [soreness, setSoreness] = useState<number | null>(today?.soreness ?? null);
-  const [stress, setStress] = useState<number | null>(today?.stress ?? null);
+  const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  if (!editing && today) {
+  // `today` starts null and arrives when the fetch resolves, so form state
+  // cannot simply be initialised from it — useState reads its argument only on
+  // the first render, which left the form open forever even once a check-in was
+  // found. Instead the draft resets whenever the loaded check-in changes, via
+  // the adjust-state-during-render pattern (React's documented alternative to a
+  // syncing effect), keeping edits in progress intact between those changes.
+  const loadedKey = today
+    ? `${today.logDate}:${today.sleepHours}:${today.soreness}:${today.stress}`
+    : "none";
+  const [prevKey, setPrevKey] = useState(loadedKey);
+  const [sleepHours, setSleepHours] = useState(today?.sleepHours?.toString() ?? "");
+  const [soreness, setSoreness] = useState<number | null>(today?.soreness ?? null);
+  const [stress, setStress] = useState<number | null>(today?.stress ?? null);
+
+  if (prevKey !== loadedKey) {
+    setPrevKey(loadedKey);
+    setSleepHours(today?.sleepHours?.toString() ?? "");
+    setSoreness(today?.soreness ?? null);
+    setStress(today?.stress ?? null);
+  }
+
+  if (today && !editing) {
     const score = scoreFor(today);
     const status = interpretScore(score);
     return (

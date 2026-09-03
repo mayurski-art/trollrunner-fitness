@@ -116,7 +116,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   : "text-muted hover:text-foreground"
               }`}
             >
-              {status === "authed" && session ? `` : "Sign in"}
+              {/* Signed in this rendered an empty string, leaving an invisible
+                  link — the You tab existed but could not be seen or found. */}
+              {status === "authed" && session ? session.username || "You" : "Sign in"}
             </Link>
             <Link
               href="/log"
