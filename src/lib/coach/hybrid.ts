@@ -52,7 +52,9 @@ export function patternOf(exercise: string): Pattern {
  * so callers must not count them as individual runs.
  */
 export function isWeeklySummary(a: Activity): boolean {
-  return a.type === "run" && /—\s*running total$/.test(a.title);
+  // Historic rows used "running total" before it was established that the
+  // COROS chart covers all activity types, not running alone.
+  return /—\s*(training|running) total$/.test(a.title);
 }
 
 /**

@@ -296,10 +296,10 @@ export function CoachClient() {
           </span>
         </div>
         <p className="mt-1 text-xs text-muted">
-          Zone distribution across {AEROBIC_BASE.totalDistanceMi} mi and{" "}
-          {AEROBIC_BASE.activities} activities, from your watch. A snapshot of the
-          block — it describes how the whole training period was distributed, which
-          no individual run can tell you.
+          Running only: {AEROBIC_BASE.totalDistanceMi} mi across{" "}
+          {AEROBIC_BASE.activities} runs, {AEROBIC_BASE.totalDurationLabel}, averaging{" "}
+          {AEROBIC_BASE.avgPace}. This is your endurance baseline — it describes how
+          a whole training block was distributed, which no individual run can show.
         </p>
 
         <div className="mt-3 grid grid-cols-3 gap-3">

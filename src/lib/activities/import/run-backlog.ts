@@ -1,12 +1,17 @@
-// Running backlog, May 18 - Sep 6 2026, transcribed from the user's COROS
+// Activity backlog, May 18 - Sep 6 2026, transcribed from the user's COROS
 // "16 Weeks / All Activities" summary screen.
 //
 // IMPORTANT — what this is and is not:
-// The COROS screen reports WEEKLY TOTALS, not individual runs. It shows 79
-// activities over the 16 weeks, but the per-run dates, distances and durations
-// were never available, so inventing 79 rows would be fabricating data. Each
-// row below is therefore ONE summary activity representing a whole week, with
-// the week's total distance and total moving time.
+// The COROS screen reports WEEKLY TOTALS across ALL ACTIVITIES — running,
+// cycling, everything — not individual runs and not running alone. It shows 79
+// activities over the 16 weeks, but the per-activity dates, distances and
+// durations were never available, so inventing 79 rows would be fabricating
+// data. Each row below is therefore ONE summary activity representing a whole
+// week of total training volume.
+//
+// Because these mix modalities, a week's summary total will exceed the sum of
+// that week's individual RUNS — the difference is cycling and other work, not
+// missing runs. Do not treat a shortfall against these numbers as a data gap.
 //
 // This is NOT wearable sync (CLAUDE.md hard rule 1 — no OAuth/API connector to
 // COROS or anything else). It is a one-off manual transcription of numbers the
@@ -67,8 +72,8 @@ export const RUN_BACKLOG: BacklogRun[] = WEEKLY_MI.map((mi, i) => {
   const weekStart = addDays(WEEK_ONE_START, i * 7);
   return {
     date: weekStart,
-    title: `Week of ${weekStart} — running total`,
-    notes: `Weekly summary from COROS (${COROS_SUMMARY.rangeLabel}). Distance read from the weekly chart; time and elevation apportioned from the 16-week totals. Not a single run — this row stands for the whole week's running.`,
+    title: `Week of ${weekStart} — training total`,
+    notes: `Weekly all-activity summary from COROS (${COROS_SUMMARY.rangeLabel}). Distance read from the weekly chart; time and elevation apportioned from the 16-week totals. Not a single session, and not running alone — this row stands for the whole week's training volume across every activity type.`,
     distanceMi: mi.toFixed(1),
     durationMin: String(minutes),
     elevationFt: String(elevation),

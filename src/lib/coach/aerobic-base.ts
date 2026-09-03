@@ -36,29 +36,43 @@ export type AerobicBaseSnapshot = {
   /** Intensity trend as a percentage; 100-149 is COROS "Optimized". */
   intensityTrendPct: number;
   intensityLabel: string;
+  /** Average pace across all logged running, mm'ss"/mi. */
+  avgPace: string;
+  totalDurationLabel: string;
   zones: Zone[];
 };
 
+/**
+ * RUN-ONLY figures for the 2026 year to date. An earlier version of this file
+ * used the "All Activities" screen, which folds cycling and everything else
+ * into the same totals; these numbers are filtered to running, so the zone
+ * distribution actually describes running. The two readings agree closely
+ * (58/41 here vs 61/39 all-activity), which is what makes the intensity
+ * finding below trustworthy rather than an artefact of mixed modalities.
+ */
 export const AEROBIC_BASE: AerobicBaseSnapshot = {
   capturedOn: "2026-09-03",
-  rangeLabel: "May 18 – Sep 6, 2026",
-  totalDistanceMi: 328.1,
-  activities: 79,
-  totalLoad: 7906,
-  avgHeartRateBpm: 136,
-  trainingFocus: "Recovery",
+  rangeLabel: "2026 year to date (runs only)",
+  totalDistanceMi: 468.72,
+  activities: 115,
+  totalLoad: 12052,
+  avgHeartRateBpm: 143,
+  trainingFocus: "Aerobic Endurance",
   sevenDayLoad: 617,
   loadImpact: 76,
   baseFitness: 74,
   intensityTrendPct: 102,
   intensityLabel: "Optimized",
+  /** Average pace across all logged running, mm'ss"/mi. */
+  avgPace: "11'49\"/mi",
+  totalDurationLabel: "92h 21min",
   zones: [
-    { name: "Recovery", miles: 112.26, pct: 34, develops: "Active recovery and aerobic volume at minimal cost." },
-    { name: "Aerobic Endurance", miles: 87.09, pct: 27, develops: "The aerobic engine — mitochondrial density and fat oxidation." },
-    { name: "Aerobic Power", miles: 20.68, pct: 6, develops: "Sustained aerobic output near the top of the aerobic range." },
-    { name: "Threshold", miles: 59.19, pct: 18, develops: "Lactate clearance — the pace you can hold for about an hour." },
-    { name: "Anaerobic Endurance", miles: 36.84, pct: 11, develops: "Tolerance to high-intensity work and repeatability." },
-    { name: "Anaerobic Power", miles: 12.05, pct: 4, develops: "Top-end speed and neuromuscular power." },
+    { name: "Recovery", miles: 113.77, pct: 24, develops: "Active recovery and aerobic volume at minimal cost." },
+    { name: "Aerobic Endurance", miles: 160.77, pct: 34, develops: "The aerobic engine — mitochondrial density and fat oxidation." },
+    { name: "Aerobic Power", miles: 36.08, pct: 8, develops: "Sustained aerobic output near the top of the aerobic range." },
+    { name: "Threshold", miles: 87.85, pct: 19, develops: "Lactate clearance — the pace you can hold for about an hour." },
+    { name: "Anaerobic Endurance", miles: 53.55, pct: 11, develops: "Tolerance to high-intensity work and repeatability." },
+    { name: "Anaerobic Power", miles: 16.7, pct: 4, develops: "Top-end speed and neuromuscular power." },
   ],
 };
 
@@ -93,7 +107,7 @@ export function aerobicBaseInsights(
   if (easyPct < 75) {
     out.push({
       title: "Too much of your mileage is hard",
-      detail: `${easyPct}% of the block was easy against the ~80% a polarised plan wants, with ${hardPct}% at threshold or above. That is enough intensity to keep you tired without being enough volume to build the aerobic base — and it is the pattern that stalls hybrid athletes, because the lifting never gets recovered-for either. Push the easy runs genuinely easier rather than cutting the hard ones.`,
+      detail: `${easyPct}% of your running is easy against the ~80% a polarised plan wants, with ${hardPct}% at threshold or above. For an endurance goal this is the single highest-leverage thing to change: that much intensity keeps you tired enough that the easy volume — which is what actually grows the aerobic engine — never accumulates. It also means the lifting never gets recovered for. Slow the easy runs down rather than cutting the hard ones; the weekly long run is where endurance is built, and it only works if you arrive fresh.`,
       tone: "warning",
     });
   } else if (easyPct > 90) {

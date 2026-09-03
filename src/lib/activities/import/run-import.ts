@@ -120,7 +120,10 @@ export async function importRunBacklog(
   userId: string,
   onProgress?: (p: ImportProgress) => void
 ): Promise<ImportResult> {
-  const existing = await fetchExisting(userId, "run");
+  // Stored as 'other', not 'run': these weekly rows cover ALL activity types
+  // (running, cycling, everything), so counting them as running mileage would
+  // overstate it by whatever the cross-training was that week.
+  const existing = await fetchExisting(userId, "other");
   const result: ImportResult = { imported: 0, skipped: 0, failed: [] };
 
   for (let i = 0; i < RUN_BACKLOG.length; i++) {
