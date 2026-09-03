@@ -123,7 +123,13 @@ export async function importRunBacklog(
   // Stored as 'other', not 'run': these weekly rows cover ALL activity types
   // (running, cycling, everything), so counting them as running mileage would
   // overstate it by whatever the cross-training was that week.
+  //
+  // Both types are checked for existing rows. These were once written as runs
+  // titled "running total"; matching only the current title/type would treat an
+  // already-imported week as missing and write a duplicate — which is exactly
+  // what happened once already.
   const existing = await fetchExisting(userId, "other");
+  const existingAsRuns = await fetchExisting(userId, "run");
   const result: ImportResult = { imported: 0, skipped: 0, failed: [] };
 
   for (let i = 0; i < RUN_BACKLOG.length; i++) {
@@ -131,19 +137,24 @@ export async function importRunBacklog(
     const label = `${week.date} — ${week.distanceMi} mi`;
     onProgress?.({ done: i, total: RUN_BACKLOG.length, current: label });
 
-    if (existing.has(keyFor(week))) {
+    const legacyKey = `${week.date}::Week of ${week.date} — running total`;
+    if (
+      existing.has(keyFor(week)) ||
+      existingAsRuns.has(keyFor(week)) ||
+      existingAsRuns.has(legacyKey) ||
+      existing.has(legacyKey)
+    ) {
       result.skipped++;
       continue;
     }
 
     try {
-      await logRun(userId, {
-        type: "run",
+      await logOther(userId, {
+        type: "other",
         title: week.title,
         occurredAt: occurredAtFor(week.date),
         distanceMi: week.distanceMi,
         durationMin: week.durationMin,
-        elevationFt: week.elevationFt,
         effort: null,
         notes: week.notes,
       });
@@ -257,4 +268,65 @@ export async function importDetailedRuns(
 
   onProgress?.({ done: DETAILED_RUNS.length, total: DETAILED_RUNS.length, current: "" });
   return { ...result, supersededRemoved };
+}
+
+/** A legacy summary row found in the database, before deleting anything. */
+export type LegacySummaryRow = {
+  id: string;
+  title: string;
+  occurredAt: string;
+  distanceMi: number | null;
+};
+
+/**
+ * Finds weekly-summary rows stored as type 'run'. These double-count twice over:
+ * they overlap the individual runs for the same weeks, and the COROS chart they
+ * came from covers ALL activities, so they include cycling mileage too.
+ *
+ * Both generated titles are matched. The rows were first written as "running
+ * total"; retitling them to "training total" meant a re-import did not recognise
+ * the originals as already-present (the dedupe key includes the title), so a
+ * second copy landed. Anyone who ran both imports has two rows per week.
+ *
+ * Only these exact generated titles match, so nothing hand-logged is at risk.
+ */
+export async function findLegacySummaryRuns(
+  userId: string
+): Promise<LegacySummaryRow[]> {
+  const sb = getClient();
+  const { data, error } = await sb
+    .from("fit_activities")
+    .select("id, title, occurred_at, distance_mi")
+    .eq("user_id", userId)
+    .eq("type", "run")
+    .or("title.like.Week of % — running total,title.like.Week of % — training total");
+  if (error) throw error;
+  return ((data as { id: string; title: string; occurred_at: string; distance_mi: number | null }[]) || []).map(
+    (r) => ({
+      id: r.id,
+      title: r.title,
+      occurredAt: r.occurred_at,
+      distanceMi: r.distance_mi,
+    })
+  );
+}
+
+/**
+ * Deletes the legacy summary rows found above. Takes explicit ids so the caller
+ * shows the user what will go before anything is removed.
+ */
+export async function deleteLegacySummaryRuns(
+  userId: string,
+  ids: string[]
+): Promise<number> {
+  if (!ids.length) return 0;
+  const sb = getClient();
+  const { data, error } = await sb
+    .from("fit_activities")
+    .delete()
+    .eq("user_id", userId)
+    .in("id", ids)
+    .select("id");
+  if (error) throw error;
+  return (data || []).length;
 }

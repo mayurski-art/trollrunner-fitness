@@ -15,11 +15,14 @@ import {
   DETAILED_RUNS_TOTAL_MI,
 } from "@/lib/activities/import/runs-detailed";
 import {
+  deleteLegacySummaryRuns,
+  findLegacySummaryRuns,
   importBacklog,
   importDetailedRuns,
   importRunBacklog,
   type ImportProgress,
   type ImportResult,
+  type LegacySummaryRow,
 } from "@/lib/activities/import/run-import";
 import { SkeletonPage } from "@/components/ui/skeleton";
 
@@ -33,6 +36,10 @@ export function ImportClient() {
   const [expanded, setExpanded] = useState<string | null>(null);
   /** Which import is running or last finished, so results land in the right card. */
   const [active, setActive] = useState<Kind | null>(null);
+  const [legacy, setLegacy] = useState<LegacySummaryRow[] | null>(null);
+  const [legacyBusy, setLegacyBusy] = useState(false);
+  const [legacyDeleted, setLegacyDeleted] = useState<number | null>(null);
+  const [legacyError, setLegacyError] = useState<string | null>(null);
 
   if (status === "loading") return <SkeletonPage />;
 
@@ -75,6 +82,39 @@ export function ImportClient() {
     }
   }
 
+  async function handleScanLegacy() {
+    setLegacyBusy(true);
+    setLegacyError(null);
+    setLegacyDeleted(null);
+    try {
+      setLegacy(await findLegacySummaryRuns(userId));
+    } catch (err) {
+      setLegacyError(err instanceof Error ? err.message : "Scan failed.");
+    } finally {
+      setLegacyBusy(false);
+    }
+  }
+
+  async function handleDeleteLegacy() {
+    if (!legacy?.length) return;
+    setLegacyBusy(true);
+    setLegacyError(null);
+    try {
+      const n = await deleteLegacySummaryRuns(
+        userId,
+        legacy.map((r) => r.id)
+      );
+      setLegacyDeleted(n);
+      setLegacy([]);
+    } catch (err) {
+      setLegacyError(err instanceof Error ? err.message : "Delete failed.");
+    } finally {
+      setLegacyBusy(false);
+    }
+  }
+
+  const legacyMiles = (legacy || []).reduce((n, r) => n + (r.distanceMi || 0), 0);
+
   const running = progress !== null;
   const pct = progress ? Math.round((progress.done / progress.total) * 100) : 0;
 
@@ -86,6 +126,71 @@ export function ImportClient() {
           One-time backfill of training history that predates logging in the app.
           Both imports skip anything already there, so they are safe to re-run.
         </p>
+      </div>
+
+      <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4">
+        <h2 className="text-sm font-semibold">Fix double-counted mileage</h2>
+        <p className="mt-1 text-sm text-muted">
+          The weekly rows imported earlier were stored as runs, but the COROS chart
+          they came from covers <em>all</em> activities — so they include cycling and
+          overlap the individual runs for the same weeks. They were also renamed
+          part-way through, so a second import wrote a duplicate copy of each week
+          instead of skipping it. Both copies inflate your weekly mileage. This finds
+          every such row and removes it; your individual runs and anything you logged
+          by hand are untouched.
+        </p>
+
+        <div className="mt-3 flex flex-wrap gap-2">
+          <button
+            type="button"
+            disabled={legacyBusy}
+            onClick={handleScanLegacy}
+            className="rounded-full border border-line px-4 py-2 text-sm font-semibold transition-colors hover:bg-raised disabled:opacity-60"
+          >
+            {legacyBusy ? "Working…" : "Scan for old summary rows"}
+          </button>
+          {legacy && legacy.length > 0 && (
+            <button
+              type="button"
+              disabled={legacyBusy}
+              onClick={handleDeleteLegacy}
+              className="rounded-full bg-red-500 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-600 disabled:opacity-60"
+            >
+              Delete {legacy.length} row{legacy.length === 1 ? "" : "s"} (
+              {legacyMiles.toFixed(1)} mi)
+            </button>
+          )}
+        </div>
+
+        {legacyError && (
+          <p role="alert" className="mt-3 text-sm text-red-400">
+            {legacyError}
+          </p>
+        )}
+
+        {legacy && legacy.length === 0 && legacyDeleted === null && (
+          <p className="mt-3 text-sm text-muted" role="status">
+            Nothing found — no old summary rows are stored as runs.
+          </p>
+        )}
+
+        {legacyDeleted !== null && (
+          <p className="mt-3 text-sm font-semibold" role="status">
+            Removed {legacyDeleted} row{legacyDeleted === 1 ? "" : "s"}. Your weekly
+            mileage should now reflect running only.
+          </p>
+        )}
+
+        {legacy && legacy.length > 0 && (
+          <ul className="mt-3 space-y-1 text-xs text-muted">
+            {legacy.map((r) => (
+              <li key={r.id} className="flex justify-between gap-3">
+                <span className="truncate">{r.title}</span>
+                <span className="font-mono">{r.distanceMi ?? "—"} mi</span>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       <div className="rounded-2xl border border-line bg-surface p-4">
