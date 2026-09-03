@@ -13,6 +13,7 @@ import { recommendIsometrics } from "@/lib/strength/isometrics";
 import {
   AEROBIC_BASE,
   aerobicBaseInsights,
+  deviceStatus,
   easyHardSplit,
 } from "@/lib/coach/aerobic-base";
 import type { GoalRow } from "@/lib/coach/profile";
@@ -80,7 +81,7 @@ export function CoachClient() {
   }
 
   const load = activities ? computeTrainingLoad(activities) : null;
-  const loadStatus = load ? interpretLoad(load) : null;
+  const loadStatus = load ? interpretLoad(load, deviceStatus()) : null;
   const predictions = activities ? predictRaceTimes(activities) : null;
 
   const recoveryScore = recovery ? averageRecentScore(recovery, 7) : null;
@@ -150,6 +151,19 @@ export function CoachClient() {
               <Stat label="Form (TSB)" value={load.tsb} />
             </div>
             <p className="mt-3 text-sm text-muted">{loadStatus.why}</p>
+            <div className="mt-3 rounded-xl border border-line bg-raised p-3">
+              <p className="text-xs font-semibold">
+                From your watch ({AEROBIC_BASE.capturedOn})
+              </p>
+              <p className="mt-1 text-xs text-muted">
+                Base fitness {AEROBIC_BASE.baseFitness} · load impact{" "}
+                {AEROBIC_BASE.loadImpact} · intensity trend{" "}
+                {AEROBIC_BASE.intensityTrendPct}% ({AEROBIC_BASE.intensityLabel}) ·
+                7-day load {AEROBIC_BASE.sevenDayLoad}. Your watch sees every session
+                you have ever done; this app sees only what has been logged here, so
+                where the two disagree the watch is the better evidence.
+              </p>
+            </div>
           </>
         ) : (
           <SectionSkeleton title="Training status" />

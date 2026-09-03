@@ -153,7 +153,35 @@ export type LoadStatus = {
   why: string;
 };
 
-export function interpretLoad(load: TrainingLoad): LoadStatus {
+/**
+ * A training-status reading from the user's watch, used to sanity-check ours.
+ *
+ * The device has the user's complete history; this app has only what has been
+ * imported. When the two disagree, the device is the better evidence, and our
+ * own number is the one to doubt.
+ */
+export type DeviceStatus = {
+  /** COROS intensity trend %, where 100-149 is "Optimized". */
+  intensityTrendPct: number;
+  label: string;
+  baseFitness: number;
+  loadImpact: number;
+  /** How old the reading is; a stale one should not override a live warning. */
+  ageDays: number;
+};
+
+/** Device readings older than this stop being evidence about training now. */
+const DEVICE_STATUS_MAX_AGE_DAYS = 21;
+
+function deviceSaysProductive(device: DeviceStatus): boolean {
+  return (
+    device.ageDays <= DEVICE_STATUS_MAX_AGE_DAYS &&
+    device.intensityTrendPct >= 100 &&
+    device.intensityTrendPct < 150
+  );
+}
+
+export function interpretLoad(load: TrainingLoad, device?: DeviceStatus | null): LoadStatus {
   if (load.ctl === 0) {
     return {
       label: "No data yet",
@@ -171,6 +199,22 @@ export function interpretLoad(load: TrainingLoad): LoadStatus {
       label: "Still calibrating",
       tone: "good",
       why: `Only ${load.historyDays} days of logged history so far. Fitness (CTL) is a 42-day average, so it reads low until about six weeks in, which makes the load ratio look higher than it is. Treat these numbers as provisional — how you actually feel is the better guide right now.`,
+    };
+  }
+
+  // The watch sees the user's whole training history; this app sees only what
+  // has been imported, so a partial history can manufacture a high ACWR. When
+  // the device says the load is productive, say so and flag the disagreement
+  // rather than telling someone who feels good to back off.
+  // Bounded on purpose: a device reading can explain a moderately high ratio
+  // that a partial history inflated, but past ~1.7 the acute load is extreme
+  // enough that a days-old snapshot is not good enough evidence to wave it
+  // through. Beyond that the warning stands.
+  if (device && deviceSaysProductive(device) && load.acwr > 1.3 && load.acwr <= 1.7) {
+    return {
+      label: device.label,
+      tone: "good",
+      why: `Our ratio reads high (ACWR ${load.acwr}), but your watch has your full history and puts you at ${device.intensityTrendPct}% intensity trend — productive training, base fitness ${device.baseFitness}. Trust the watch here: this app only sees imported sessions, so its chronic average is understated. Worth a second look if you actually start feeling run down.`,
     };
   }
 

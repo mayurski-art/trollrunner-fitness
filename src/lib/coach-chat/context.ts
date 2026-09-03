@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { deviceStatus } from "@/lib/coach/aerobic-base";
 import type { Activity } from "@/lib/activities/types";
 import { weeklyMileage, currentStreak } from "@/lib/activities/stats";
 import { computeTrainingLoad, interpretLoad, type LoadStatus, type TrainingLoad } from "@/lib/coach/training-load";
@@ -85,7 +86,7 @@ export async function buildCoachFacts(sb: SupabaseClient, userId: string): Promi
   ]);
 
   const load = computeTrainingLoad(activities);
-  const loadStatus = interpretLoad(load);
+  const loadStatus = interpretLoad(load, deviceStatus());
   const predictions = predictRaceTimes(activities);
   const recoveryLogs = (recoveryRows || []).map((r) => ({
     logDate: "",

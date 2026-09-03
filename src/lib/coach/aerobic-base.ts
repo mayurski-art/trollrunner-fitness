@@ -11,6 +11,8 @@
  * snapshot, stamped with the date it was taken, and it ages.
  */
 
+import type { DeviceStatus } from "./training-load";
+
 export type Zone = {
   name: string;
   miles: number;
@@ -151,4 +153,22 @@ export function snapshotAgeDays(
     0,
     Math.floor((now.getTime() - captured.getTime()) / (24 * 60 * 60 * 1000))
   );
+}
+
+/**
+ * The snapshot as a DeviceStatus, for cross-checking our computed training
+ * load. The watch has the user's complete history; this app has only imported
+ * sessions, so when they disagree the device is the better evidence.
+ */
+export function deviceStatus(
+  s: AerobicBaseSnapshot = AEROBIC_BASE,
+  now: Date = new Date()
+): DeviceStatus {
+  return {
+    intensityTrendPct: s.intensityTrendPct,
+    label: s.intensityLabel,
+    baseFitness: s.baseFitness,
+    loadImpact: s.loadImpact,
+    ageDays: snapshotAgeDays(s, now),
+  };
 }

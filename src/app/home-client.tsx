@@ -11,6 +11,7 @@ import { ActivityCard } from "@/components/activities/activity-card";
 import { OnboardingBanner } from "@/components/onboarding-banner";
 import { WeeklyTrends } from "@/components/analytics/weekly-trends";
 import { computeTrainingLoad, interpretLoad } from "@/lib/coach/training-load";
+import { deviceStatus } from "@/lib/coach/aerobic-base";
 import { generateWeekPlan, todayDayLabel } from "@/lib/coach/plan";
 import { getGoals, getOnboardingWeeklyMileage, primaryRaceGoal } from "@/lib/coach/profile";
 import { getTodayRecovery, listRecentRecovery } from "@/lib/recovery/api";
@@ -62,7 +63,7 @@ export function HomeClient() {
       const load = computeTrainingLoad(rows);
       setCtl(load.ctl);
       setLoad(load);
-      setLoadLabel(interpretLoad(load).label);
+      setLoadLabel(interpretLoad(load, deviceStatus()).label);
 
       const recentWeeks = weeklyTrend(rows, 4);
       const loggedAvg =
