@@ -46,6 +46,15 @@ export function patternOf(exercise: string): Pattern {
   return "isolation";
 }
 
+/**
+ * True for an imported row that summarises a whole week of running rather than
+ * one session. These carry real distance but no meaningful frequency or pace,
+ * so callers must not count them as individual runs.
+ */
+export function isWeeklySummary(a: Activity): boolean {
+  return a.type === "run" && /—\s*running total$/.test(a.title);
+}
+
 export type PatternSummary = {
   pattern: Pattern;
   sets: number;
@@ -67,9 +76,14 @@ export type StalledLift = {
 export type HybridProfile = {
   /** Strength sessions per week, averaged over the window. */
   strengthPerWeek: number;
-  /** Runs per week, averaged over the window. */
-  runsPerWeek: number;
+  /**
+   * Runs per week, averaged over the window. Null when the window holds only
+   * imported weekly summaries, which carry distance but not frequency.
+   */
+  runsPerWeek: number | null;
   weeklyMileage: number;
+  /** True when some or all running in the window came from weekly summaries. */
+  hasSummaryRuns: boolean;
   /** Strength sets by movement pattern, most-trained first. */
   patterns: PatternSummary[];
   /** Patterns with under 8% of total volume — the gaps in the build. */
@@ -190,21 +204,34 @@ export function analyzeHybrid(activities: Activity[], windowDays = 90): HybridPr
     runs.reduce((sum, r) => sum + (r.distanceMi || 0), 0) / weeks;
 
   const strengthPerWeek = strength.length / weeks;
-  const runsPerWeek = runs.length / weeks;
+
+  // Imported weekly-summary rows each stand for a whole week of running, so
+  // counting rows would report "1 run a week" for someone running five times a
+  // week and send the advice in exactly the wrong direction. Those rows are
+  // excluded from the frequency count; when every run in the window is a
+  // summary, frequency is unknown rather than wrong.
+  const summaryRuns = runs.filter((r) => isWeeklySummary(r));
+  const loggedRuns = runs.length - summaryRuns.length;
+  const summaryWeeks = summaryRuns.length;
+  const knownWeeks = Math.max(weeks - summaryWeeks, 0);
+  const runsPerWeek =
+    knownWeeks > 0 ? loggedRuns / knownWeeks : summaryWeeks > 0 ? null : 0;
 
   return {
     strengthPerWeek: Math.round(strengthPerWeek * 10) / 10,
-    runsPerWeek: Math.round(runsPerWeek * 10) / 10,
+    runsPerWeek: runsPerWeek === null ? null : Math.round(runsPerWeek * 10) / 10,
     weeklyMileage: Math.round(weeklyMileage * 10) / 10,
+    hasSummaryRuns: summaryWeeks > 0,
     patterns,
     underTrained,
     stalled: findStalled(strength, midpointMs),
     totalStrengthSets,
     windowDays,
     hasStrengthBase: strength.length >= 6,
-    // Lifting regularly but barely running (or not at all) — for a hybrid goal
-    // the aerobic side is what is actually missing.
-    runningIsLimiter: strengthPerWeek >= 1.5 && runsPerWeek < 2,
+    // Lifting regularly but barely running — for a hybrid goal the aerobic side
+    // is what is actually missing. Mileage, not row count, is the honest signal
+    // here: summary rows have no frequency, so judge by volume instead.
+    runningIsLimiter: strengthPerWeek >= 1.5 && weeklyMileage < 15,
   };
 }
 
@@ -221,9 +248,9 @@ export type HybridInsight = {
  */
 export function hybridInsights(p: HybridProfile): HybridInsight[] {
   const out: HybridInsight[] = [];
-  if (!p.hasStrengthBase && p.runsPerWeek < 1) return out;
+  if (!p.hasStrengthBase && p.weeklyMileage === 0) return out;
 
-  if (p.runsPerWeek === 0 && p.hasStrengthBase) {
+  if (p.weeklyMileage === 0 && p.hasStrengthBase) {
     out.push({
       title: "No running logged",
       detail: `${p.strengthPerWeek} strength sessions a week and no runs in the last ${p.windowDays} days. The lifting base is there — the aerobic half of a hybrid build is the part that is missing. Start at 3 easy runs a week and let the mileage come up before touching the lifting volume.`,
@@ -232,20 +259,29 @@ export function hybridInsights(p: HybridProfile): HybridInsight[] {
   } else if (p.runningIsLimiter) {
     out.push({
       title: "Running is the limiter",
-      detail: `You average ${p.strengthPerWeek} strength sessions a week but only ${p.runsPerWeek} runs (${p.weeklyMileage} mi). For a hybrid build the aerobic side needs to come up to 3 runs a week — two easy, one long — before adding more lifting volume.`,
+      detail: `You average ${p.strengthPerWeek} strength sessions a week against only ${p.weeklyMileage} mi of running. For a hybrid build the aerobic side needs to come up — three runs a week, two easy and one long — before adding more lifting volume.`,
       tone: "warning",
     });
-  } else if (p.strengthPerWeek < 2 && p.runsPerWeek >= 3) {
+  } else if (p.strengthPerWeek < 2 && p.weeklyMileage >= 20) {
     out.push({
       title: "Lifting is the limiter",
-      detail: `${p.runsPerWeek} runs a week against ${p.strengthPerWeek} strength sessions. Two full lifting days a week is the floor for holding muscle while running this much.`,
+      detail: `${p.weeklyMileage} mi a week against ${p.strengthPerWeek} strength sessions. Two full lifting days a week is the floor for holding muscle while running this much — right now the running is carrying the build on its own.`,
       tone: "warning",
     });
-  } else if (p.hasStrengthBase && p.runsPerWeek >= 2) {
+  } else if (p.hasStrengthBase && p.weeklyMileage >= 10) {
     out.push({
       title: "Balance looks right",
-      detail: `${p.strengthPerWeek} strength sessions and ${p.runsPerWeek} runs a week is a workable hybrid split. Keep hard runs and heavy legs on separate days.`,
+      detail: `${p.strengthPerWeek} strength sessions and ${p.weeklyMileage} mi a week is a workable hybrid split. Keep hard runs and heavy legs on separate days.`,
       tone: "good",
+    });
+  }
+
+  if (p.hasSummaryRuns) {
+    out.push({
+      title: "Running is imported as weekly totals",
+      detail:
+        "Your backfilled running is one row per week, so run frequency and pace cannot be read from it and race predictions stay locked. Daily logging from here will fill both in.",
+      tone: "info",
     });
   }
 

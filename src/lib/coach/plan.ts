@@ -131,8 +131,8 @@ function hybridDayPlans(
   const lowerDetail = maintenance
     ? "Maintenance: squat or leg press 2x5 at a comfortable weight, hinge 2x6, calves 2x12. Leave several reps in reserve."
     : hybrid.stalled.length
-      ? "Squat or leg press 4x5-8 heavy, hinge 3x6-8, calves 3x10-15. Change the stimulus on stalled lifts — pauses or a new rep range."
-      : "Squat or leg press 4x5-8 heavy, hinge 3x6-8, calves 3x10-15.";
+      ? "Squat or leg press 4x5-8 heavy, hinge 3x6-8, calves 3x10-15. Finish with isometric holds — wall sits and single-leg calf holds change the stimulus on stalled lifts without adding load."
+      : "Squat or leg press 4x5-8 heavy, hinge 3x6-8, calves 3x10-15. Finish with single-leg calf holds, 3x30s.";
 
   // Call out whichever upper-body pattern is actually thin, rather than
   // assuming it is always pull.
@@ -142,8 +142,8 @@ function hybridDayPlans(
   const upperDetail = maintenance
     ? "Maintenance: push 2x6, pull 2x8, core 2 sets. Nothing to failure this close to the race."
     : thinUpper.length > 0
-      ? `Push 4x6-8, pull 4x6-10, core 3 sets. Lead with ${thinUpper.join(" and ")} — your thinnest pattern${thinUpper.length > 1 ? "s" : ""}.`
-      : "Push 4x6-8, pull 4x6-10, core 3 sets.";
+      ? `Push 4x6-8, pull 4x6-10, core 3 sets. Lead with ${thinUpper.join(" and ")} — your thinnest pattern${thinUpper.length > 1 ? "s" : ""}. Finish with planks and a bar hang.`
+      : "Push 4x6-8, pull 4x6-10, core 3 sets. Finish with planks and a bar hang.";
 
   // Mon: lower body (legs already tired from Sat/Sun long run, so nothing is
   // stolen from a quality run). Thu: upper body, clear of the weekend.

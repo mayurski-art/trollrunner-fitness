@@ -9,6 +9,7 @@ import { predictRaceTimes } from "@/lib/coach/race-predictor";
 import { GOAL_DISTANCE_MI, generateWeekPlan, todayDayLabel, type WeekPlan } from "@/lib/coach/plan";
 import { getGoals, getOnboardingWeeklyMileage, primaryRaceGoal, wantsHybrid } from "@/lib/coach/profile";
 import { analyzeHybrid, hybridInsights, patternLabel } from "@/lib/coach/hybrid";
+import { recommendIsometrics } from "@/lib/strength/isometrics";
 import type { GoalRow } from "@/lib/coach/profile";
 import { listRecentRecovery } from "@/lib/recovery/api";
 import { averageRecentScore, interpretScore, recoveryLoadMultiplier } from "@/lib/recovery/score";
@@ -84,6 +85,7 @@ export function CoachClient() {
   // goals/recovery — same progressive-load pattern as the sections above.
   const hybrid = activities ? analyzeHybrid(activities) : null;
   const insights = hybrid ? hybridInsights(hybrid) : [];
+  const isometrics = hybrid ? recommendIsometrics(hybrid) : [];
 
   let plan: WeekPlan | null = null;
   let raceDistanceMi: number | null = null;
@@ -200,7 +202,7 @@ export function CoachClient() {
 
       <section className="card rounded-2xl p-5">
         {hybrid ? (
-          hybrid.hasStrengthBase || hybrid.runsPerWeek > 0 ? (
+          hybrid.hasStrengthBase || hybrid.weeklyMileage > 0 ? (
             <>
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <h2 className="text-sm font-semibold">Hybrid build</h2>
@@ -210,8 +212,15 @@ export function CoachClient() {
               </div>
               <div className="mt-3 grid grid-cols-3 gap-3">
                 <Stat label="Lifts / week" value={hybrid.strengthPerWeek} />
-                <Stat label="Runs / week" value={hybrid.runsPerWeek} />
                 <Stat label="Mi / week" value={hybrid.weeklyMileage} />
+                {hybrid.runsPerWeek === null ? (
+                  <div className="rounded-xl border border-line bg-raised p-3 text-center">
+                    <p className="text-xs text-muted">Runs / week</p>
+                    <p className="mt-1 font-mono text-lg font-semibold text-muted">—</p>
+                  </div>
+                ) : (
+                  <Stat label="Runs / week" value={hybrid.runsPerWeek} />
+                )}
               </div>
 
               {hybrid.patterns.length > 0 && (
@@ -273,6 +282,33 @@ export function CoachClient() {
           <SectionSkeleton title="Hybrid build" />
         )}
       </section>
+
+      {isometrics.length > 0 && (
+        <section className="card rounded-2xl p-5">
+          <h2 className="text-sm font-semibold">Isometric holds to add</h2>
+          <p className="mt-1 text-sm text-muted">
+            Static holds build tendon stiffness — which is what returns energy on
+            every stride — with far less soreness than heavy eccentrics, so they
+            cost your next run almost nothing. Add two or three to the end of a
+            lifting day.
+          </p>
+          <ul className="mt-3 space-y-2">
+            {isometrics.map(({ isometric, reason }) => (
+              <li key={isometric.name} className="rounded-xl border border-line bg-raised p-3">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <p className="text-xs font-semibold">{isometric.name}</p>
+                  <span className="font-mono text-xs text-brand">
+                    {isometric.prescription}
+                  </span>
+                </div>
+                <p className="mt-1 text-xs text-muted">{isometric.how}</p>
+                <p className="mt-1 text-xs text-muted">{isometric.why}</p>
+                <p className="mt-1 text-xs italic text-muted">{reason}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section className="card rounded-2xl p-5">
         {plan ? (
