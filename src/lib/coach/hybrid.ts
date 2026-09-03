@@ -55,6 +55,15 @@ export function isWeeklySummary(a: Activity): boolean {
   return a.type === "run" && /—\s*running total$/.test(a.title);
 }
 
+/**
+ * True for a walking session logged under the run type. Walks are real training
+ * (they carry load and mileage) but their pace must never seed a race
+ * prediction or be read as running pace.
+ */
+export function isWalk(a: Activity): boolean {
+  return a.type === "run" && /\bwalk\b/i.test(a.title);
+}
+
 export type PatternSummary = {
   pattern: Pattern;
   sets: number;

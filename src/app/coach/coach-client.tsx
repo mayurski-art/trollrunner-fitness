@@ -10,6 +10,11 @@ import { GOAL_DISTANCE_MI, generateWeekPlan, todayDayLabel, type WeekPlan } from
 import { getGoals, getOnboardingWeeklyMileage, primaryRaceGoal, wantsHybrid } from "@/lib/coach/profile";
 import { analyzeHybrid, hybridInsights, patternLabel } from "@/lib/coach/hybrid";
 import { recommendIsometrics } from "@/lib/strength/isometrics";
+import {
+  AEROBIC_BASE,
+  aerobicBaseInsights,
+  easyHardSplit,
+} from "@/lib/coach/aerobic-base";
 import type { GoalRow } from "@/lib/coach/profile";
 import { listRecentRecovery } from "@/lib/recovery/api";
 import { averageRecentScore, interpretScore, recoveryLoadMultiplier } from "@/lib/recovery/score";
@@ -281,6 +286,73 @@ export function CoachClient() {
         ) : (
           <SectionSkeleton title="Hybrid build" />
         )}
+      </section>
+
+      <section className="card rounded-2xl p-5">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-sm font-semibold">Aerobic base</h2>
+          <span className="rounded-full bg-brand-soft px-2.5 py-1 text-xs font-semibold text-brand">
+            {AEROBIC_BASE.rangeLabel}
+          </span>
+        </div>
+        <p className="mt-1 text-xs text-muted">
+          Zone distribution across {AEROBIC_BASE.totalDistanceMi} mi and{" "}
+          {AEROBIC_BASE.activities} activities, from your watch. A snapshot of the
+          block — it describes how the whole training period was distributed, which
+          no individual run can tell you.
+        </p>
+
+        <div className="mt-3 grid grid-cols-3 gap-3">
+          <Stat label="Base fitness" value={AEROBIC_BASE.baseFitness} />
+          <Stat label="Load impact" value={AEROBIC_BASE.loadImpact} />
+          <Stat label="Avg HR" value={AEROBIC_BASE.avgHeartRateBpm} />
+        </div>
+
+        <div className="mt-4">
+          <div className="flex items-baseline justify-between">
+            <p className="text-xs font-medium text-muted">Time in zone</p>
+            <p className="text-xs text-muted">
+              {easyHardSplit().easyPct}% easy / {easyHardSplit().hardPct}% hard
+            </p>
+          </div>
+          <ul className="mt-2 space-y-1.5">
+            {AEROBIC_BASE.zones.map((z) => (
+              <li key={z.name} className="flex items-center gap-2 text-xs">
+                <span className="w-36 shrink-0 text-muted">{z.name}</span>
+                <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-raised">
+                  <span
+                    className="block h-full rounded-full bg-brand"
+                    style={{ width: `${z.pct}%` }}
+                  />
+                </span>
+                <span className="w-20 shrink-0 text-right font-mono text-muted">
+                  {z.miles} mi
+                </span>
+                <span className="w-10 shrink-0 text-right font-mono text-muted">
+                  {z.pct}%
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <ul className="mt-4 space-y-2">
+          {aerobicBaseInsights().map((ins) => (
+            <li
+              key={ins.title}
+              className={`rounded-xl border p-3 ${
+                ins.tone === "warning"
+                  ? "border-amber-500/30 bg-amber-500/10"
+                  : ins.tone === "good"
+                    ? "border-brand/30 bg-brand-soft"
+                    : "border-line bg-raised"
+              }`}
+            >
+              <p className="text-xs font-semibold">{ins.title}</p>
+              <p className="mt-1 text-xs text-muted">{ins.detail}</p>
+            </li>
+          ))}
+        </ul>
       </section>
 
       {isometrics.length > 0 && (

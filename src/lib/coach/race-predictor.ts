@@ -1,4 +1,5 @@
 import type { Activity } from "@/lib/activities/types";
+import { isWalk, isWeeklySummary } from "./hybrid";
 
 const RACE_DISTANCES = [
   { key: "5K", mi: 3.107 },
@@ -28,12 +29,23 @@ function formatPace(secPerMi: number): string {
   return `${m}:${String(s).padStart(2, "0")}/mi`;
 }
 
-/** The fastest-paced run with both distance and duration logged, ≥1 mile, last 120 days. */
+/**
+ * The fastest-paced run with both distance and duration logged, ≥1 mile, last
+ * 120 days.
+ *
+ * Imported weekly-summary rows are excluded: their duration is apportioned
+ * across a whole week, so the pace is an average of easy and hard running and
+ * would predict race times that mean nothing. Riegel needs a single genuine
+ * effort. Walks are excluded for the same reason — walking pace is not a
+ * running effort, however real the training is.
+ */
 function bestReferenceRun(activities: Activity[]): { mi: number; sec: number } | null {
   const cutoff = Date.now() - 120 * 24 * 60 * 60 * 1000;
   const candidates = activities.filter(
     (a) =>
       a.type === "run" &&
+      !isWeeklySummary(a) &&
+      !isWalk(a) &&
       a.distanceMi &&
       a.distanceMi >= 1 &&
       a.durationSec &&

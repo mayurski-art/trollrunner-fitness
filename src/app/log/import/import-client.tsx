@@ -10,14 +10,19 @@ import {
   RUN_BACKLOG_TOTAL_MI,
 } from "@/lib/activities/import/run-backlog";
 import {
+  DETAILED_RUNS,
+  DETAILED_RUNS_TOTAL_MI,
+} from "@/lib/activities/import/runs-detailed";
+import {
   importBacklog,
+  importDetailedRuns,
   importRunBacklog,
   type ImportProgress,
   type ImportResult,
 } from "@/lib/activities/import/run-import";
 import { SkeletonPage } from "@/components/ui/skeleton";
 
-type Kind = "strength" | "run";
+type Kind = "strength" | "run" | "detailed";
 
 export function ImportClient() {
   const { status, session } = useSession();
@@ -47,13 +52,20 @@ export function ImportClient() {
     setError(null);
     setResult(null);
     setActive(kind);
-    const total = kind === "strength" ? BACKLOG.length : RUN_BACKLOG.length;
+    const total =
+      kind === "strength"
+        ? BACKLOG.length
+        : kind === "run"
+          ? RUN_BACKLOG.length
+          : DETAILED_RUNS.length;
     setProgress({ done: 0, total, current: "" });
     try {
       const res =
         kind === "strength"
           ? await importBacklog(userId, setProgress)
-          : await importRunBacklog(userId, setProgress);
+          : kind === "run"
+            ? await importRunBacklog(userId, setProgress)
+            : await importDetailedRuns(userId, setProgress);
       setResult(res);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Import failed.");
@@ -99,7 +111,41 @@ export function ImportClient() {
       </div>
 
       <div className="rounded-2xl border border-line bg-surface p-4">
-        <h2 className="text-sm font-semibold">Running</h2>
+        <h2 className="text-sm font-semibold">Running — individual runs</h2>
+        <p className="mt-1 text-sm text-muted">
+          {DETAILED_RUNS.length} real run{DETAILED_RUNS.length === 1 ? "" : "s"} from
+          Aug–Sep 2026, {DETAILED_RUNS_TOTAL_MI} mi. Real dates, distances and
+          times — these unlock run frequency, pace and race predictions.
+        </p>
+        {running && active === "detailed" ? (
+          <Progress progress={progress} pct={pct} />
+        ) : (
+          <button
+            type="button"
+            disabled={running || DETAILED_RUNS.length === 0}
+            onClick={() => handleImport("detailed")}
+            className="mt-3 w-full rounded-full bg-brand py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-strong active:scale-[0.98] disabled:opacity-60"
+          >
+            Import {DETAILED_RUNS.length} run{DETAILED_RUNS.length === 1 ? "" : "s"}
+          </button>
+        )}
+        {active === "detailed" && <Outcome error={error} result={result} />}
+
+        <ul className="mt-3 space-y-1 text-xs text-muted">
+          {DETAILED_RUNS.map((r) => (
+            <li key={`${r.date}-${r.distanceMi}`} className="flex justify-between gap-3">
+              <span>{r.date}</span>
+              <span className="font-mono">
+                {r.distanceMi} mi · {r.durationMin} min
+                {r.avgHeartRate ? ` · ${r.avgHeartRate} bpm` : ""}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div className="rounded-2xl border border-line bg-surface p-4">
+        <h2 className="text-sm font-semibold">Running — weekly totals</h2>
         <p className="mt-1 text-sm text-muted">
           {RUN_BACKLOG.length} weekly totals from COROS ({COROS_SUMMARY.rangeLabel}),{" "}
           {RUN_BACKLOG_TOTAL_MI} mi across {COROS_SUMMARY.activities} activities.
@@ -213,7 +259,7 @@ function Outcome({
   result,
 }: {
   error: string | null;
-  result: ImportResult | null;
+  result: (ImportResult & { supersededRemoved?: number }) | null;
 }) {
   if (!error && !result) return null;
   return (
@@ -230,6 +276,13 @@ function Outcome({
             {result.skipped > 0 ? `, skipped ${result.skipped} already there` : ""}
             {result.failed.length > 0 ? `, ${result.failed.length} failed` : ""}.
           </p>
+          {(result.supersededRemoved ?? 0) > 0 && (
+            <p className="text-muted">
+              Removed {result.supersededRemoved} weekly-summary row
+              {result.supersededRemoved === 1 ? "" : "s"} now covered by individual
+              runs, so the mileage is not counted twice.
+            </p>
+          )}
           {result.failed.length > 0 && (
             <ul className="space-y-1 text-red-400">
               {result.failed.map((f) => (

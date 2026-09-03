@@ -2,6 +2,19 @@ import { getClient } from "@/lib/accounts/client";
 import { logRun, logStrength } from "@/lib/activities/api";
 import { BACKLOG } from "./backlog";
 import { RUN_BACKLOG, type BacklogRun } from "./run-backlog";
+import {
+  DETAILED_RUNS,
+  SUPERSEDED_SUMMARY_WEEKS,
+  type DetailedRun,
+} from "./runs-detailed";
+
+/**
+ * Detailed runs are titled by distance so they read naturally in the feed and
+ * stay distinct from the "Week of ... — running total" summary rows.
+ */
+function titleForDetailedRun(run: DetailedRun): string {
+  return run.title ?? `${run.distanceMi} mi run`;
+}
 
 /**
  * A backlog workout is "already imported" when the signed-in user has a
@@ -138,4 +151,76 @@ export async function importRunBacklog(
 
   onProgress?.({ done: RUN_BACKLOG.length, total: RUN_BACKLOG.length, current: "" });
   return result;
+}
+
+/**
+ * Deletes the weekly-summary rows that detailed runs have replaced, so the same
+ * mileage is not counted twice. Only touches rows this importer created (matched
+ * on the summary title), never anything hand-logged.
+ */
+async function removeSupersededSummaries(userId: string): Promise<number> {
+  if (!SUPERSEDED_SUMMARY_WEEKS.length) return 0;
+  const sb = getClient();
+  const titles = SUPERSEDED_SUMMARY_WEEKS.map(
+    (week) => `Week of ${week} — running total`
+  );
+  const { data, error } = await sb
+    .from("fit_activities")
+    .delete()
+    .eq("user_id", userId)
+    .eq("type", "run")
+    .in("title", titles)
+    .select("id");
+  if (error) throw error;
+  return (data || []).length;
+}
+
+/**
+ * Writes the individual Aug-Sep runs, then clears any weekly summary they
+ * supersede. Idempotent on date + title like the other imports.
+ */
+export async function importDetailedRuns(
+  userId: string,
+  onProgress?: (p: ImportProgress) => void
+): Promise<ImportResult & { supersededRemoved: number }> {
+  const existing = await fetchExisting(userId, "run");
+  const result: ImportResult = { imported: 0, skipped: 0, failed: [] };
+
+  for (let i = 0; i < DETAILED_RUNS.length; i++) {
+    const run = DETAILED_RUNS[i];
+    const title = titleForDetailedRun(run);
+    const label = `${run.date} — ${run.distanceMi} mi`;
+    onProgress?.({ done: i, total: DETAILED_RUNS.length, current: label });
+
+    if (existing.has(`${run.date}::${title}`)) {
+      result.skipped++;
+      continue;
+    }
+
+    try {
+      await logRun(userId, {
+        type: "run",
+        title,
+        occurredAt: occurredAtFor(run.date),
+        distanceMi: run.distanceMi,
+        durationMin: run.durationMin,
+        elevationFt: run.elevationFt,
+        effort: null,
+        notes: run.notes,
+      });
+      result.imported++;
+    } catch (err) {
+      result.failed.push({
+        workout: label,
+        message: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
+  // Only clear summaries once the detailed runs actually landed.
+  const supersededRemoved =
+    result.failed.length === 0 ? await removeSupersededSummaries(userId) : 0;
+
+  onProgress?.({ done: DETAILED_RUNS.length, total: DETAILED_RUNS.length, current: "" });
+  return { ...result, supersededRemoved };
 }
