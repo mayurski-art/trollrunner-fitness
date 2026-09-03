@@ -12,6 +12,7 @@ import { computeBadges, type Badge } from "@/lib/gamification/badges";
 import { BadgesGrid } from "@/components/gamification/badges-grid";
 import { HumorToggle } from "@/components/gamification/humor-toggle";
 import { SkeletonPage } from "@/components/ui/skeleton";
+import { GoalsEditor } from "@/components/onboarding/goals-editor";
 
 export function YouClient() {
   const { status, session } = useSession();
@@ -91,13 +92,15 @@ function ProfileView() {
           </>
         ) : onboardingComplete === true ? (
           <p className="mt-2 text-sm text-muted">
-            Onboarding complete. The training and coach engines that use this
-            profile land in later phases.
+            Onboarding complete — the coach is using this profile. Edit your goals
+            below at any time.
           </p>
         ) : (
           <p className="mt-2 text-sm text-muted">Checking your profile…</p>
         )}
       </section>
+
+      <GoalsEditor userId={session.userId} />
 
       {badges && <BadgesGrid badges={badges} />}
 

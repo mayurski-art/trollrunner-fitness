@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { useSession } from "@/lib/accounts/session-context";
 import { listActivities } from "@/lib/activities/api";
 import { currentStreak, weeklyMileage } from "@/lib/activities/stats";
-import { monthSummary, weeklyTrend } from "@/lib/activities/trends";
+import { dailyTrend, monthSummary, monthlyTrend, weeklyTrend } from "@/lib/activities/trends";
 import type { Activity } from "@/lib/activities/types";
 import { ActivityCard } from "@/components/activities/activity-card";
 import { OnboardingBanner } from "@/components/onboarding-banner";
@@ -14,13 +14,14 @@ import { computeTrainingLoad, interpretLoad } from "@/lib/coach/training-load";
 import { generateWeekPlan, todayDayLabel } from "@/lib/coach/plan";
 import { getGoals, getOnboardingWeeklyMileage, primaryRaceGoal } from "@/lib/coach/profile";
 import { getTodayRecovery, listRecentRecovery } from "@/lib/recovery/api";
-import { averageRecentScore, interpretScore, recoveryLoadMultiplier } from "@/lib/recovery/score";
+import { averageRecentScore, interpretScore, recoveryLoadMultiplier, scoreFor } from "@/lib/recovery/score";
 import type { RecoveryLog } from "@/lib/recovery/types";
 import { RecoveryCheckin } from "@/components/recovery/checkin-card";
 import { getFriendsFeed, type FeedActivity } from "@/lib/social/feed";
 import { getKudosInfo, type KudosInfo } from "@/lib/social/kudos";
 import { FriendActivityCard } from "@/components/social/friend-activity-card";
 import { Skeleton, SkeletonList } from "@/components/ui/skeleton";
+import { StatDetailModal, type StatDetail } from "@/components/analytics/stat-detail-modal";
 
 const TODAY_INDEX = todayDayLabel();
 
@@ -29,6 +30,9 @@ export function HomeClient() {
   const [activities, setActivities] = useState<Activity[] | null>(null);
   const [ctl, setCtl] = useState<number | null>(null);
   const [loadLabel, setLoadLabel] = useState<string | null>(null);
+  const [load, setLoad] = useState<ReturnType<typeof computeTrainingLoad> | null>(null);
+  const [recentRecovery, setRecentRecovery] = useState<RecoveryLog[]>([]);
+  const [openStat, setOpenStat] = useState<StatDetail | null>(null);
   const [todayWorkout, setTodayWorkout] = useState<{ type: string; detail: string; note: string | null } | null>(null);
   const [todayRecovery, setTodayRecovery] = useState<RecoveryLog | null>(null);
   const [recoveryScore, setRecoveryScore] = useState<number | null>(null);
@@ -51,11 +55,13 @@ export function HomeClient() {
 
       setActivities(rows);
       setTodayRecovery(today);
+      setRecentRecovery(recentRecovery);
       const avgScore = averageRecentScore(recentRecovery, 7);
       setRecoveryScore(avgScore);
 
       const load = computeTrainingLoad(rows);
       setCtl(load.ctl);
+      setLoad(load);
       setLoadLabel(interpretLoad(load).label);
 
       const recentWeeks = weeklyTrend(rows, 4);
@@ -93,31 +99,112 @@ export function HomeClient() {
   const month = activities ? monthSummary(activities) : null;
   const recoveryStatus = interpretScore(recoveryScore);
 
-  const stats = [
+  const recoveryTrend = recentRecovery
+    .map((log) => ({
+      label: log.logDate.slice(5),
+      value: scoreFor(log) ?? 0,
+    }))
+    .reverse();
+
+  const bestWeek = weeks.reduce<{ label: string; mileage: number } | null>(
+    (best, w) => (!best || w.mileage > best.mileage ? w : best),
+    null
+  );
+
+  const stats: {
+    label: string;
+    value: string;
+    note: string;
+    detail: StatDetail;
+  }[] = [
     {
       label: "This week",
       value: mileage !== null ? `${mileage.toFixed(1)} mi` : "0.0 mi",
       note: "Runs logged this week",
+      detail: {
+        label: "This week",
+        value: mileage !== null ? `${mileage.toFixed(1)} mi` : "0.0 mi",
+        explanation:
+          "Running miles logged since the start of this week. Cycling and other cross-training are tracked separately, so they never inflate this number.",
+        chart: { data: weeks.map((w) => ({ label: w.label, value: w.mileage })), unit: "mi" },
+        facts: bestWeek
+          ? [
+              { label: "Best week", value: `${bestWeek.mileage.toFixed(1)} mi` },
+              {
+                label: "8-week average",
+                value: `${(weeks.reduce((n, w) => n + w.mileage, 0) / (weeks.length || 1)).toFixed(1)} mi`,
+              },
+            ]
+          : undefined,
+      },
     },
     {
       label: "Streak",
       value: streak !== null ? `${streak} day${streak === 1 ? "" : "s"}` : "—",
       note: "Consecutive days logged",
+      detail: {
+        label: "Streak",
+        value: streak !== null ? `${streak} day${streak === 1 ? "" : "s"}` : "—",
+        explanation:
+          "Consecutive days with something logged — a run, a lift or a check-in. The bars show how many sessions you logged each of the last 7 days.",
+        chart: {
+          data: (activities ? dailyTrend(activities, 7) : []).map((d) => ({
+            label: d.label,
+            value: d.mileage,
+          })),
+          unit: "mi",
+        },
+      },
     },
     {
       label: "Fitness score",
       value: ctl !== null ? String(ctl) : "—",
       note: "42-day training load (CTL)",
+      detail: {
+        label: "Fitness score",
+        value: ctl !== null ? String(ctl) : "—",
+        explanation:
+          "Chronic Training Load: a 42-day weighted average of everything you do. It rises slowly as you build fitness and falls when you rest. The monthly bars below show the volume driving it.",
+        chart: {
+          data: (activities ? monthlyTrend(activities, 6) : []).map((m) => ({
+            label: m.label,
+            value: m.mileage,
+          })),
+          unit: "mi",
+        },
+      },
     },
     {
       label: "Training status",
       value: loadLabel ?? "—",
       note: "See the Coach tab for why",
+      detail: {
+        label: "Training status",
+        value: loadLabel ?? "—",
+        explanation:
+          load
+            ? `Fitness (CTL) ${load.ctl}, Fatigue (ATL) ${load.atl}, Form (TSB) ${load.tsb}. Form is fitness minus fatigue — negative means you are carrying training load, which is normal in a build block. ${load.acwrReliable ? "" : "These are still provisional until about six weeks of history builds up."}`.trim()
+            : "Log a few sessions to build a training-load trend.",
+        chart: {
+          data: weeks.map((w) => ({ label: w.label, value: w.mileage })),
+          unit: "mi",
+        },
+      },
     },
     {
       label: "Recovery",
       value: recoveryScore !== null ? recoveryStatus.label : "—",
       note: "7-day average from check-ins",
+      detail: {
+        label: "Recovery",
+        value: recoveryScore !== null ? `${recoveryScore}/100` : "—",
+        explanation:
+          "Your daily check-in score from sleep, soreness and stress. Higher is better. The coach trims planned volume when this runs low for several days.",
+        chart:
+          recoveryTrend.length > 0
+            ? { data: recoveryTrend, unit: "/100" }
+            : null,
+      },
     },
   ];
 
@@ -150,13 +237,19 @@ export function HomeClient() {
                 </div>
               ))
             : stats.map((stat) => (
-                <div key={stat.label} className="card card-interactive rounded-2xl p-4">
+                <button
+                  key={stat.label}
+                  type="button"
+                  onClick={() => setOpenStat(stat.detail)}
+                  aria-label={`${stat.label}: ${stat.value}. Show trend`}
+                  className="card card-interactive rounded-2xl p-4 text-left transition-transform hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]"
+                >
                   <p className="text-xs font-medium uppercase tracking-wide text-muted">
                     {stat.label}
                   </p>
                   <p className="mt-1 font-mono text-2xl font-semibold">{stat.value}</p>
                   <p className="mt-1.5 text-xs text-muted">{stat.note}</p>
-                </div>
+                </button>
               ))}
         </section>
       )}
@@ -275,6 +368,8 @@ export function HomeClient() {
         <span>📚 Learn — running form, recovery, nutrition, and race-day guides</span>
         <span className="font-semibold text-brand">→</span>
       </Link>
+
+      <StatDetailModal detail={openStat} onClose={() => setOpenStat(null)} />
     </div>
   );
 }

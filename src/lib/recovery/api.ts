@@ -19,10 +19,20 @@ function toLog(row: RecoveryRow): RecoveryLog {
   };
 }
 
+/**
+ * Today's calendar date in the user's own timezone, as YYYY-MM-DD.
+ *
+ * Subtracting the timezone offset before calling toISOString() shifts the
+ * instant rather than reinterpreting it, which lands on the wrong day for
+ * anyone west of UTC once it is late enough locally — so a check-in already
+ * logged would not be found and the form reappeared. Reading the local date
+ * parts directly avoids the round trip through UTC entirely.
+ */
 function todayDate(): string {
   const d = new Date();
-  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
-  return d.toISOString().slice(0, 10);
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${month}-${day}`;
 }
 
 export async function listRecentRecovery(userId: string, days = 14): Promise<RecoveryLog[]> {
