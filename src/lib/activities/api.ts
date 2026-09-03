@@ -1,5 +1,10 @@
 import { getClient } from "@/lib/accounts/client";
-import type { Activity, NewRunActivity, NewStrengthActivity } from "./types";
+import type {
+  Activity,
+  NewOtherActivity,
+  NewRunActivity,
+  NewStrengthActivity,
+} from "./types";
 
 type ActivityRow = {
   id: string;
@@ -96,4 +101,24 @@ export async function logStrength(userId: string, input: NewStrengthActivity) {
     const { error: setsError } = await sb.from("fit_strength_sets").insert(rows);
     if (setsError) throw setsError;
   }
+}
+
+/**
+ * Cross-training (cycling, swimming, rowing). Stored with type 'other' so its
+ * distance never lands in running mileage — the coach filters on type.
+ */
+export async function logOther(userId: string, input: NewOtherActivity) {
+  const sb = getClient();
+  const durationMin = toNumberOrNull(input.durationMin);
+  const { error } = await sb.from("fit_activities").insert({
+    user_id: userId,
+    type: "other",
+    title: input.title || "Cross-training",
+    notes: input.notes,
+    occurred_at: input.occurredAt,
+    distance_mi: toNumberOrNull(input.distanceMi),
+    duration_sec: durationMin !== null ? Math.round(durationMin * 60) : null,
+    effort: input.effort,
+  });
+  if (error) throw error;
 }

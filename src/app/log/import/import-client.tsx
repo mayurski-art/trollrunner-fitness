@@ -10,6 +10,7 @@ import {
   RUN_BACKLOG_TOTAL_MI,
 } from "@/lib/activities/import/run-backlog";
 import {
+  CROSS_TRAINING,
   DETAILED_RUNS,
   DETAILED_RUNS_TOTAL_MI,
 } from "@/lib/activities/import/runs-detailed";
@@ -111,11 +112,13 @@ export function ImportClient() {
       </div>
 
       <div className="rounded-2xl border border-line bg-surface p-4">
-        <h2 className="text-sm font-semibold">Running — individual runs</h2>
+        <h2 className="text-sm font-semibold">Running — individual sessions</h2>
         <p className="mt-1 text-sm text-muted">
-          {DETAILED_RUNS.length} real run{DETAILED_RUNS.length === 1 ? "" : "s"} from
-          Aug–Sep 2026, {DETAILED_RUNS_TOTAL_MI} mi. Real dates, distances and
-          times — these unlock run frequency, pace and race predictions.
+          {DETAILED_RUNS.length} sessions from Aug–Sep 2026,{" "}
+          {DETAILED_RUNS_TOTAL_MI} mi, plus {CROSS_TRAINING.length} cross-training
+          session{CROSS_TRAINING.length === 1 ? "" : "s"}. Real dates, distances and
+          times — these unlock run frequency, pace and race predictions. Walks and
+          cycling are logged as such, so their pace never feeds a race prediction.
         </p>
         {running && active === "detailed" ? (
           <Progress progress={progress} pct={pct} />

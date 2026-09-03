@@ -39,3 +39,18 @@ export type NewStrengthActivity = {
   notes: string;
   sets: StrengthSet[];
 };
+
+/**
+ * Cross-training — cycling, swimming, rowing. Distance is recorded but is NOT
+ * running mileage, so anything that reasons about run volume must filter on
+ * type rather than summing distance across every activity.
+ */
+export type NewOtherActivity = {
+  type: "other";
+  title: string;
+  occurredAt: string;
+  distanceMi: string;
+  durationMin: string;
+  effort: number | null;
+  notes: string;
+};

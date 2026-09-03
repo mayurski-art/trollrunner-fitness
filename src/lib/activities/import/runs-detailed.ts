@@ -53,9 +53,9 @@ export const DETAILED_RUNS: DetailedRun[] = [
     avgHeartRate: 111,
     trainingLoad: 5,
     calories: 68,
-    title: "Treadmill walk",
+    title: "Indoor run",
     notes:
-      "Indoor treadmill, short walk/shakeout. 24:15/mi average, training load 5, 68 cal.",
+      "Indoor treadmill run. 24:15/mi average, training load 5, 68 cal.",
   },
   {
     date: "2026-08-05",
@@ -75,9 +75,9 @@ export const DETAILED_RUNS: DetailedRun[] = [
     avgHeartRate: 132,
     trainingLoad: 30,
     calories: 257,
-    title: "Incline treadmill walk",
+    title: "Indoor run",
     notes:
-      "Indoor, 6% average incline. 20:00/mi average, training load 30, 257 cal.",
+      "Indoor run, 6% average incline. 20:00/mi average, training load 30, 257 cal.",
   },
   {
     date: "2026-08-07",
@@ -87,9 +87,9 @@ export const DETAILED_RUNS: DetailedRun[] = [
     avgHeartRate: 127,
     trainingLoad: 22,
     calories: 222,
-    title: "Incline treadmill walk",
+    title: "Indoor run",
     notes:
-      "Indoor, 6% average grade. 20:00/mi average, training load 22, 222 cal.",
+      "Indoor run, 6% average grade. 20:00/mi average, training load 22, 222 cal.",
   },
   {
     date: "2026-08-08",
@@ -119,9 +119,9 @@ export const DETAILED_RUNS: DetailedRun[] = [
     avgHeartRate: 124,
     trainingLoad: 22,
     calories: 231,
-    title: "Incline treadmill walk",
+    title: "Indoor run",
     notes:
-      "Indoor, 6% average grade. 20:00/mi average, training load 22, 231 cal.",
+      "Indoor run, 6% average grade. 20:00/mi average, training load 22, 231 cal.",
   },
   {
     date: "2026-08-12",
@@ -141,9 +141,62 @@ export const DETAILED_RUNS: DetailedRun[] = [
     avgHeartRate: 131,
     trainingLoad: 36,
     calories: 325,
-    title: "Incline treadmill walk",
+    title: "Indoor run",
     notes:
-      "Indoor, 6% average grade. 19:34/mi average, training load 36, 325 cal.",
+      "Indoor run, 6% average grade. 19:34/mi average, training load 36, 325 cal.",
+  },
+  {
+    date: "2026-08-15",
+    distanceMi: "10.05",
+    durationMin: fromPace(10.05, 9, 11),
+    elevationFt: "",
+    avgHeartRate: 167,
+    trainingLoad: 320,
+    calories: 1455,
+    notes: "9:11/mi average. 102% efficiency, training load 320, 1455 cal.",
+  },
+  {
+    date: "2026-08-17",
+    distanceMi: "3.45",
+    durationMin: fromPace(3.45, 11, 14),
+    elevationFt: "",
+    avgHeartRate: 141,
+    trainingLoad: 52,
+    calories: 466,
+    notes: "11:14/mi average. 100% efficiency, training load 52, 466 cal.",
+  },
+  {
+    date: "2026-08-18",
+    distanceMi: "1.04",
+    durationMin: fromPace(1.04, 10, 50),
+    elevationFt: "",
+    avgHeartRate: 139,
+    trainingLoad: 24,
+    calories: 133,
+    notes:
+      "Short outdoor run. 10:50/mi average, 108% efficiency, training load 24, 133 cal.",
+  },
+  {
+    date: "2026-08-21",
+    distanceMi: "2.01",
+    durationMin: fromPace(2.01, 20, 0),
+    elevationFt: "",
+    avgHeartRate: 117,
+    trainingLoad: 21,
+    calories: 271,
+    title: "Indoor run",
+    notes:
+      "Indoor run, 6% average grade. 20:00/mi average, training load 21, 271 cal.",
+  },
+  {
+    date: "2026-08-22",
+    distanceMi: "0.86",
+    durationMin: fromPace(0.86, 11, 40),
+    elevationFt: "",
+    avgHeartRate: 138,
+    trainingLoad: 13,
+    calories: 119,
+    notes: "11:40/mi average. 100% efficiency, training load 13, 119 cal.",
   },
 ];
 
@@ -156,3 +209,32 @@ export const SUPERSEDED_SUMMARY_WEEKS: string[] = [];
 
 export const DETAILED_RUNS_TOTAL_MI =
   Math.round(DETAILED_RUNS.reduce((n, r) => n + Number(r.distanceMi), 0) * 10) / 10;
+
+export type CrossTraining = {
+  date: string;
+  title: string;
+  distanceMi: string;
+  durationMin: string;
+  avgHeartRate?: number;
+  trainingLoad?: number;
+  calories?: number;
+  notes: string;
+};
+
+/**
+ * Cycling and other non-running aerobic work. Kept separate from DETAILED_RUNS
+ * and imported as type 'other', so the distance contributes aerobic volume and
+ * training load without ever being counted as running mileage.
+ */
+export const CROSS_TRAINING: CrossTraining[] = [
+  {
+    date: "2026-08-19",
+    title: "Indoor bike",
+    distanceMi: "9.77",
+    durationMin: (9.77 / 8.7 * 60).toFixed(1),
+    avgHeartRate: 118,
+    trainingLoad: 38,
+    calories: 456,
+    notes: "Indoor cycling. 8.7 mph average, training load 38, 456 cal.",
+  },
+];

@@ -1,8 +1,9 @@
 import { getClient } from "@/lib/accounts/client";
-import { logRun, logStrength } from "@/lib/activities/api";
+import { logOther, logRun, logStrength } from "@/lib/activities/api";
 import { BACKLOG } from "./backlog";
 import { RUN_BACKLOG, type BacklogRun } from "./run-backlog";
 import {
+  CROSS_TRAINING,
   DETAILED_RUNS,
   SUPERSEDED_SUMMARY_WEEKS,
   type DetailedRun,
@@ -44,7 +45,10 @@ function occurredAtFor(date: string): string {
 
 type ExistingRow = { title: string; occurred_at: string; type: string };
 
-async function fetchExisting(userId: string, type: "strength" | "run"): Promise<Set<string>> {
+async function fetchExisting(
+  userId: string,
+  type: "strength" | "run" | "other"
+): Promise<Set<string>> {
   const sb = getClient();
   const { data, error } = await sb
     .from("fit_activities")
@@ -212,6 +216,33 @@ export async function importDetailedRuns(
     } catch (err) {
       result.failed.push({
         workout: label,
+        message: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
+  // Cross-training rides along with the runs — same dictation session, and it
+  // goes in as type 'other' so its distance stays out of running mileage.
+  const existingOther = await fetchExisting(userId, "other");
+  for (const session of CROSS_TRAINING) {
+    if (existingOther.has(`${session.date}::${session.title}`)) {
+      result.skipped++;
+      continue;
+    }
+    try {
+      await logOther(userId, {
+        type: "other",
+        title: session.title,
+        occurredAt: occurredAtFor(session.date),
+        distanceMi: session.distanceMi,
+        durationMin: session.durationMin,
+        effort: null,
+        notes: session.notes,
+      });
+      result.imported++;
+    } catch (err) {
+      result.failed.push({
+        workout: `${session.date} — ${session.title}`,
         message: err instanceof Error ? err.message : String(err),
       });
     }
