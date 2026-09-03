@@ -7,7 +7,8 @@ import { weeklyTrend } from "@/lib/activities/trends";
 import { computeTrainingLoad, interpretLoad, type LoadStatus } from "@/lib/coach/training-load";
 import { predictRaceTimes } from "@/lib/coach/race-predictor";
 import { GOAL_DISTANCE_MI, generateWeekPlan, todayDayLabel, type WeekPlan } from "@/lib/coach/plan";
-import { getGoals, getOnboardingWeeklyMileage, primaryRaceGoal } from "@/lib/coach/profile";
+import { getGoals, getOnboardingWeeklyMileage, primaryRaceGoal, wantsHybrid } from "@/lib/coach/profile";
+import { analyzeHybrid, hybridInsights, patternLabel } from "@/lib/coach/hybrid";
 import type { GoalRow } from "@/lib/coach/profile";
 import { listRecentRecovery } from "@/lib/recovery/api";
 import { averageRecentScore, interpretScore, recoveryLoadMultiplier } from "@/lib/recovery/score";
@@ -79,6 +80,11 @@ export function CoachClient() {
   const recoveryScore = recovery ? averageRecentScore(recovery, 7) : null;
   const recoveryStatus = recovery ? interpretScore(recoveryScore) : null;
 
+  // The hybrid read only needs activities, so it renders without waiting on
+  // goals/recovery — same progressive-load pattern as the sections above.
+  const hybrid = activities ? analyzeHybrid(activities) : null;
+  const insights = hybrid ? hybridInsights(hybrid) : [];
+
   let plan: WeekPlan | null = null;
   let raceDistanceMi: number | null = null;
   let todayWorkoutType: string | null = null;
@@ -92,6 +98,7 @@ export function CoachClient() {
       targetDate: raceGoal?.target_date || null,
       baselineWeeklyMileage: baseline,
       recoveryMultiplier: recoveryLoadMultiplier(recoveryScore),
+      hybrid: wantsHybrid(goals) && hybrid?.hasStrengthBase ? hybrid : null,
     });
     raceDistanceMi = raceGoal ? GOAL_DISTANCE_MI[raceGoal.goal_key] ?? null : null;
     todayWorkoutType = plan.days.find((d) => d.day === todayDayLabel())?.type ?? null;
@@ -192,6 +199,82 @@ export function CoachClient() {
       </section>
 
       <section className="card rounded-2xl p-5">
+        {hybrid ? (
+          hybrid.hasStrengthBase || hybrid.runsPerWeek > 0 ? (
+            <>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 className="text-sm font-semibold">Hybrid build</h2>
+                <span className="rounded-full bg-brand-soft px-2.5 py-1 text-xs font-semibold text-brand">
+                  last {hybrid.windowDays} days
+                </span>
+              </div>
+              <div className="mt-3 grid grid-cols-3 gap-3">
+                <Stat label="Lifts / week" value={hybrid.strengthPerWeek} />
+                <Stat label="Runs / week" value={hybrid.runsPerWeek} />
+                <Stat label="Mi / week" value={hybrid.weeklyMileage} />
+              </div>
+
+              {hybrid.patterns.length > 0 && (
+                <div className="mt-4">
+                  <p className="text-xs font-medium text-muted">
+                    Where your {hybrid.totalStrengthSets} sets went
+                  </p>
+                  <ul className="mt-2 space-y-1.5">
+                    {hybrid.patterns.map((p) => (
+                      <li key={p.pattern} className="flex items-center gap-2 text-xs">
+                        <span className="w-36 shrink-0 capitalize text-muted">
+                          {patternLabel(p.pattern)}
+                        </span>
+                        <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-raised">
+                          <span
+                            className="block h-full rounded-full bg-brand"
+                            style={{ width: `${Math.round(p.share * 100)}%` }}
+                          />
+                        </span>
+                        <span className="w-14 shrink-0 text-right font-mono text-muted">
+                          {Math.round(p.share * 100)}%
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {insights.length > 0 && (
+                <ul className="mt-4 space-y-2">
+                  {insights.map((ins) => (
+                    <li
+                      key={ins.title}
+                      className={`rounded-xl border p-3 ${
+                        ins.tone === "warning"
+                          ? "border-amber-500/30 bg-amber-500/10"
+                          : ins.tone === "good"
+                            ? "border-brand/30 bg-brand-soft"
+                            : "border-line bg-raised"
+                      }`}
+                    >
+                      <p className="text-xs font-semibold">{ins.title}</p>
+                      <p className="mt-1 text-xs text-muted">{ins.detail}</p>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </>
+          ) : (
+            <>
+              <h2 className="text-sm font-semibold">Hybrid build</h2>
+              <p className="mt-2 text-sm text-muted">
+                Log some workouts and this fills in with your movement-pattern balance, stalled
+                lifts, and how your lifting and running are trading off.
+              </p>
+            </>
+          )
+        ) : (
+          <SectionSkeleton title="Hybrid build" />
+        )}
+      </section>
+
+      <section className="card rounded-2xl p-5">
         {plan ? (
           <>
             <div className="flex flex-wrap items-center justify-between gap-2">
@@ -206,6 +289,7 @@ export function CoachClient() {
               {plan.goalLabel ? ` · building toward "${plan.goalLabel}"` : ""}
             </p>
             {plan.recoveryNote && <p className="mt-1 text-xs text-amber-400">{plan.recoveryNote}</p>}
+            {plan.hybridNote && <p className="mt-1 text-xs text-brand">{plan.hybridNote}</p>}
             <div className="mt-3 divide-y divide-line">
               {plan.days.map((d) => (
                 <div key={d.day} className="flex items-start justify-between gap-3 py-2 text-sm">

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useSession } from "@/lib/accounts/session-context";
@@ -92,9 +93,12 @@ export function LogClient() {
     <div className="mx-auto max-w-lg space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <h1 className="text-2xl font-bold tracking-tight">Log activity</h1>
-        <span className="rounded-full bg-brand-soft px-3 py-1 text-xs font-semibold text-brand">
-          Manual logging
-        </span>
+        <Link
+          href="/log/import"
+          className="rounded-full bg-brand-soft px-3 py-1 text-xs font-semibold text-brand hover:underline"
+        >
+          Import backlog
+        </Link>
       </div>
 
       <div className="flex rounded-full border border-line bg-surface p-1">

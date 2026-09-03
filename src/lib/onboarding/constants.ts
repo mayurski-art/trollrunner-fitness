@@ -5,6 +5,7 @@ export const GOALS = [
   "Hypertrophy",
   "Strength",
   "General health",
+  "Hybrid athlete",
   "Run first 5K",
   "Run first half marathon",
   "Run first marathon",

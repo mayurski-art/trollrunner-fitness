@@ -18,6 +18,30 @@ export function primaryRaceGoal(goals: GoalRow[]): GoalRow | null {
   return goals.find((g) => g.goal_key in GOAL_DISTANCE_MI) || null;
 }
 
+/**
+ * Goals that imply a run + lift build. "Hybrid athlete" states it outright;
+ * the others are muscle goals that, paired with a running goal, mean the plan
+ * has to serve both sides rather than treating strength as an afterthought.
+ */
+const HYBRID_GOALS = new Set([
+  "Hybrid athlete",
+  "Gain muscle",
+  "Body recomposition",
+  "Hypertrophy",
+  "Strength",
+]);
+
+/** True when the user's goals call for a combined run + lift plan. */
+export function wantsHybrid(goals: GoalRow[]): boolean {
+  const keys = goals.map((g) => g.goal_key);
+  if (keys.includes("Hybrid athlete")) return true;
+  const hasStrengthGoal = keys.some((k) => HYBRID_GOALS.has(k));
+  const hasRunGoal = keys.some(
+    (k) => k in GOAL_DISTANCE_MI || k === "Increase endurance" || k === "Improve VO2 max"
+  );
+  return hasStrengthGoal && hasRunGoal;
+}
+
 export async function getOnboardingWeeklyMileage(userId: string): Promise<number> {
   const sb = getClient();
   const { data } = await sb

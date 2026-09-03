@@ -1,3 +1,5 @@
+import type { HybridProfile } from "./hybrid";
+
 export type Phase = "base" | "build" | "peak" | "taper";
 
 export function todayDayLabel(): string {
@@ -14,6 +16,8 @@ export type WeekPlan = {
   goalLabel: string | null;
   days: DayPlan[];
   recoveryNote: string | null;
+  /** Set when the week was rebuilt around a hybrid (run + lift) goal. */
+  hybridNote: string | null;
 };
 
 /** Running goals this generator can build a race-specific plan for. */
@@ -102,16 +106,106 @@ function dayPlansFor(phase: Phase, targetMileage: number): DayPlan[] {
   }
 }
 
+/**
+ * Rewrites the week for a hybrid build: two hard lifting days placed away from
+ * the quality run and the long run, so neither quality gets compromised. Easy
+ * runs may share a day with lifting (run first, lift after); hard sessions
+ * never do.
+ *
+ * The lower-body day is deliberately placed the day AFTER the long run rather
+ * than before it — legs are already fatigued, so the run is protected and the
+ * lift becomes the second priority of a hard 48 hours instead of stealing the
+ * long run's quality.
+ */
+function hybridDayPlans(
+  phase: Phase,
+  runDays: DayPlan[],
+  hybrid: HybridProfile
+): { days: DayPlan[]; note: string } {
+  const byDay = new Map(runDays.map((d) => [d.day, d]));
+
+  // In a race block lifting is maintenance only — the running is the priority,
+  // so volume drops and nothing goes to failure with a race close.
+  const maintenance = phase === "peak" || phase === "taper";
+
+  const lowerDetail = maintenance
+    ? "Maintenance: squat or leg press 2x5 at a comfortable weight, hinge 2x6, calves 2x12. Leave several reps in reserve."
+    : hybrid.stalled.length
+      ? "Squat or leg press 4x5-8 heavy, hinge 3x6-8, calves 3x10-15. Change the stimulus on stalled lifts — pauses or a new rep range."
+      : "Squat or leg press 4x5-8 heavy, hinge 3x6-8, calves 3x10-15.";
+
+  // Call out whichever upper-body pattern is actually thin, rather than
+  // assuming it is always pull.
+  const thinUpper = ["push", "pull", "core"].filter((p) =>
+    hybrid.underTrained.includes(p as (typeof hybrid.underTrained)[number])
+  );
+  const upperDetail = maintenance
+    ? "Maintenance: push 2x6, pull 2x8, core 2 sets. Nothing to failure this close to the race."
+    : thinUpper.length > 0
+      ? `Push 4x6-8, pull 4x6-10, core 3 sets. Lead with ${thinUpper.join(" and ")} — your thinnest pattern${thinUpper.length > 1 ? "s" : ""}.`
+      : "Push 4x6-8, pull 4x6-10, core 3 sets.";
+
+  // Mon: lower body (legs already tired from Sat/Sun long run, so nothing is
+  // stolen from a quality run). Thu: upper body, clear of the weekend.
+  //
+  // Race week is the exception: loaded legs days before a race cost more than
+  // one skipped session gains, so the lower day drops out entirely and only a
+  // light upper day stays to keep the routine.
+  if (phase !== "taper") {
+    byDay.set("Mon", { day: "Mon", type: "Lower strength", detail: lowerDetail });
+  }
+  byDay.set("Thu", { day: "Thu", type: "Upper strength", detail: upperDetail });
+
+  // The base-phase running week carries its own generic "Strength" day. With
+  // two real lifting days now placed, that would make three — so it becomes an
+  // easy run and keeps the aerobic side honest.
+  const wed = byDay.get("Wed");
+  if (wed && wed.type === "Strength") {
+    byDay.set("Wed", {
+      day: "Wed",
+      type: "Easy",
+      detail: "Easy 30-40 min, conversational — or full rest if Monday is still in your legs.",
+    });
+  }
+
+  // Fri was the rest day in every running phase; make it the easy shakeout so
+  // the aerobic side does not lose a day to the added lifting. Race week keeps
+  // its rest days as written.
+  const fri = byDay.get("Fri");
+  if (phase !== "taper" && fri && fri.type === "Rest") {
+    byDay.set("Fri", {
+      day: "Fri",
+      type: "Easy",
+      detail: "Easy 30-40 min, conversational. Keep it genuinely easy.",
+    });
+  }
+
+  const order = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const days = order.map((d) => byDay.get(d)!).filter(Boolean);
+
+  const note =
+    phase === "taper"
+      ? "Race week: heavy legs are dropped entirely and only a light upper day stays — nothing here should cost you the race."
+      : phase === "peak"
+        ? "Race block: lifting drops to maintenance — same movements, fewer sets, nothing to failure."
+        : "Two lifting days placed away from your quality run and long run, so neither one gets compromised.";
+
+  return { days, note };
+}
+
 export function generateWeekPlan({
   goalLabel,
   targetDate,
   baselineWeeklyMileage,
   recoveryMultiplier = 1,
+  hybrid = null,
 }: {
   goalLabel: string | null;
   targetDate: string | null;
   baselineWeeklyMileage: number;
   recoveryMultiplier?: number;
+  /** When set, the week is rebuilt as a run + lift week. */
+  hybrid?: HybridProfile | null;
 }): WeekPlan {
   const weeksUntilGoal = targetDate
     ? Math.max(1, Math.ceil((new Date(targetDate).getTime() - Date.now()) / (7 * 24 * 60 * 60 * 1000)))
@@ -127,13 +221,17 @@ export function generateWeekPlan({
       ? `Trimmed ${Math.round((1 - recoveryMultiplier) * 100)}% for recent low recovery scores.`
       : null;
 
+  const runDays = dayPlansFor(phase, targetMileage);
+  const overlay = hybrid ? hybridDayPlans(phase, runDays, hybrid) : null;
+
   return {
     phase,
     phaseWhy: why,
     targetMileage,
     weeksUntilGoal,
     goalLabel,
-    days: dayPlansFor(phase, targetMileage),
+    days: overlay ? overlay.days : runDays,
     recoveryNote,
+    hybridNote: overlay ? overlay.note : null,
   };
 }
