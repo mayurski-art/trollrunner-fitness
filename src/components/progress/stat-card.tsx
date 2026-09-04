@@ -54,13 +54,13 @@ export function StatCard({
         <h3 className="text-[15px] font-semibold tracking-tight">{title}</h3>
       </div>
 
-      <div className="mt-3 flex items-end justify-between gap-4">
+      <div className="mt-3 flex items-end justify-between gap-2 @[22rem]:gap-4">
         <div className="min-w-0">
           <p className="flex items-baseline gap-1.5">
             <span
               className={
                 valueClassName ??
-                "font-mono text-[34px] font-bold leading-none tracking-tight tabular-nums"
+                "font-mono text-[28px] font-bold leading-none tracking-tight tabular-nums @[22rem]:text-[34px]"
               }
             >
               {value}
@@ -69,7 +69,9 @@ export function StatCard({
               <span className="text-sm font-semibold text-muted">{unit}</span>
             ) : null}
           </p>
-          {sub ? <p className="mt-1.5 text-[13px] text-muted">{sub}</p> : null}
+          {sub ? (
+            <p className="mt-1.5 text-[12px] text-muted @[22rem]:text-[13px]">{sub}</p>
+          ) : null}
         </div>
 
         {visual ? <div className="shrink-0">{visual}</div> : null}
@@ -80,7 +82,11 @@ export function StatCard({
   );
 
   if (!onClick) {
-    return <section className="card flex flex-col rounded-2xl p-4">{body}</section>;
+    return (
+      <section className="card @container flex flex-col rounded-2xl p-3.5 @[22rem]:p-4">
+        {body}
+      </section>
+    );
   }
 
   return (
@@ -88,7 +94,7 @@ export function StatCard({
       type="button"
       onClick={onClick}
       aria-label={ariaLabel ?? `${title}: ${value}${unit ? ` ${unit}` : ""}. Show detail`}
-      className="card card-interactive flex w-full flex-col rounded-2xl p-4 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]"
+      className="card card-interactive @container flex w-full flex-col rounded-2xl p-3.5 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)] @[22rem]:p-4"
     >
       {body}
     </button>
@@ -109,10 +115,14 @@ export function StatRow({
       {items.map((it, i) => (
         <div
           key={it.label}
-          className={i > 0 ? "border-l border-line pl-3" : "pr-3"}
+          className={i > 0 ? "border-l border-line pl-2 @[22rem]:pl-3" : "pr-2 @[22rem]:pr-3"}
         >
-          <p className="font-mono text-xl font-semibold tabular-nums">{it.value}</p>
-          <p className="mt-0.5 text-xs text-muted">{it.label}</p>
+          <p className="font-mono text-lg font-semibold tabular-nums @[22rem]:text-xl">
+            {it.value}
+          </p>
+          <p className="mt-0.5 text-[11px] leading-tight text-muted @[22rem]:text-xs">
+            {it.label}
+          </p>
         </div>
       ))}
     </div>

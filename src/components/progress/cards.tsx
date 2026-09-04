@@ -140,7 +140,7 @@ export function RecoveryCard({
       unit={score !== null ? "%" : undefined}
       sub={
         score !== null
-          ? "7-day average from your check-ins"
+          ? "7-day check-in average"
           : "Log a check-in to see recovery"
       }
       visual={<GaugeArc pct={score ?? 0} label={status.label} />}

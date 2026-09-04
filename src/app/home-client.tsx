@@ -299,7 +299,7 @@ export function HomeClient() {
       {status === "authed" && activities && activities.length > 0 && load && loadStatus && (
         <section
           aria-label="Progress"
-          className="grid grid-cols-1 gap-3 lg:grid-cols-2"
+          className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3"
         >
           <WeeklyTrainingLoadCard
             activities={activities}

@@ -177,10 +177,16 @@ Phases merge to main individually as each completes.
 `src/lib/coach/progress-cards.ts` — the derivations (daily series, suggested
 weekly band, running-fitness score). `cards.tsx` — the four cards.
 
-Layout: single column on phones, two columns from `lg`. Three columns were
-tried and rejected — at ~312px per card the sub-lines ("Suggested 1,081-1,590",
-"Intensity Trend") wrapped and broke the alignment between the value and its
-visualization.
+Layout: one column on phones, two from `sm`, three from `xl`.
+
+Three columns first failed — at ~312px the sub-lines ("Suggested 1,081-1,590",
+"Intensity Trend") wrapped and knocked the bars out of line with the value. The
+cause was fixed-width visuals: a rigid 128px SVG cannot yield, so the text had
+to. The fix is CONTAINER queries (`@container` on the card, `@[22rem]:` for the
+roomy treatment) rather than viewport breakpoints — each card measures itself,
+so a card is compact because IT is narrow, not because the window is. The SVGs
+scale with it via viewBox. That keeps the phone layout at full size while the
+three-up desktop grid gets a tighter variant of the same card.
 
 Verified in headless Chrome at 500px and 1440px: the widest child sits 17px
 inside the card edge on every card, and scrollWidth equals clientWidth, so

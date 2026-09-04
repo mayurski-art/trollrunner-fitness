@@ -29,6 +29,8 @@ export function DayBars({
 }) {
   const max = Math.max(...values, 1);
   const peakIndex = values.indexOf(Math.max(...values));
+  // The SVG scales with the card (viewBox keeps the proportions), so a narrow
+  // three-up card shrinks the bars rather than forcing the sub-line to wrap.
   const W = 128;
   const H = 46;
   const slot = W / values.length;
@@ -41,7 +43,11 @@ export function DayBars({
           {peakLabel}
         </span>
       ) : null}
-      <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} role="presentation">
+      <svg
+        viewBox={`0 0 ${W} ${H}`}
+        role="presentation"
+        className="h-[46px] w-[92px] @[22rem]:w-[128px]"
+      >
         {values.map((v, i) => {
           const x = i * slot + slot / 2 - barW / 2;
           // Every day gets a visible track, so rest days read as "logged
@@ -73,14 +79,13 @@ export function DayBars({
           );
         })}
       </svg>
-      <div className="mt-1 flex" style={{ width: W }}>
+      <div className="mt-1 flex w-[92px] @[22rem]:w-[128px]">
         {labels.map((l, i) => (
           <span
             key={i}
-            className={`text-center text-[10px] leading-none ${
+            className={`flex-1 text-center text-[10px] leading-none ${
               i === highlightIndex ? "font-semibold text-foreground" : "text-muted"
             }`}
-            style={{ width: slot }}
           >
             {l}
           </span>
@@ -116,7 +121,11 @@ export function GaugeArc({
 
   return (
     <div aria-hidden className="flex flex-col items-center">
-      <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} role="presentation">
+      <svg
+        viewBox={`0 0 ${W} ${H}`}
+        role="presentation"
+        className="w-[84px] @[22rem]:w-[116px]"
+      >
         <path
           d={d}
           fill="none"
@@ -173,7 +182,11 @@ export function NeedleGauge({
 
   return (
     <div aria-hidden className="flex flex-col items-center">
-      <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} role="presentation">
+      <svg
+        viewBox={`0 0 ${W} ${H}`}
+        role="presentation"
+        className="w-[96px] @[22rem]:w-[128px]"
+      >
         {/* Warm sweep, light on the left through to deep orange on the right. */}
         <path d={arc(0, 0.34)} fill="none" stroke="#fbbf24" strokeWidth={7} strokeLinecap="round" />
         <path d={arc(0.33, 0.67)} fill="none" stroke="#fb923c" strokeWidth={7} />
