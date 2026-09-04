@@ -136,7 +136,7 @@ engine's safety rails.
 | 3 | Activities + feed | Manual run/strength logging, Strava-style activity cards, personal feed, streaks |
 | 4 | Dashboard v1 | Today's workout, weekly mileage/volume, stat cards, first Recharts |
 | 5 | ~~Wearable sync~~ | **DROPPED** — see §3. Repurposed: effort slider, quick-pick presets, celebration screen on manual logging instead. |
-| 6 | Coach engine (run) | **DONE.** sRPE-based CTL/ATL/TSB + ACWR guard, Riegel race predictor, live-computed weekly plan (base/build/peak/taper) on Home + a new Coach page |
+| 6 | Coach engine (run) | **DONE.** sRPE-based training load engine, Riegel race predictor, live-computed weekly plan (base/build/peak/taper) on Home + a new Coach page. Terminology later renamed to match the user's COROS watch (Base Fitness / Load Impact / Intensity Trend replaced CTL/ATL/ACWR; TSB dropped) — see docs/COROS-UI.md. |
 | 7 | Strength module | **DONE.** 5 program templates on a Training page browser with quick-start into Log, rest timer, Epley-based PR detection + celebration. Progression/deload logic deferred — no per-session history state yet, revisit if it becomes a real gap. |
 | 8 | Recovery | **DONE.** Daily sleep/soreness/stress check-in (fit_recovery_logs), 0-100 recovery score, feeds a load multiplier into the Phase 6 plan generator (auto-trims weekly mileage on a poor recovery trend) |
 | 9 | Nutrition | **DONE.** Mifflin-St Jeor calorie/macro/hydration targets (live-computed like the Phase 6 plan, no fit_nutrition_targets table), pre/post-workout tips, distance-aware race fueling, supplement education — all on the Coach page |
