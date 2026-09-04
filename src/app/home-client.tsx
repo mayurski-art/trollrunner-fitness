@@ -30,6 +30,10 @@ import {
   RunningFitnessCard,
 } from "@/components/progress/cards";
 import { recentLoadDays, suggestedWeeklyLoad, runningFitness } from "@/lib/coach/progress-cards";
+import { BodyMassCard } from "@/components/bodymass/body-mass-card";
+import { listWeightLogs } from "@/lib/bodyweight/api";
+import { weightTrend } from "@/lib/bodyweight/trend";
+import type { WeightLog } from "@/lib/bodyweight/types";
 
 const TODAY_INDEX = todayDayLabel();
 
@@ -47,23 +51,27 @@ export function HomeClient() {
   const [recoveryRefresh, setRecoveryRefresh] = useState(0);
   const [friendsFeed, setFriendsFeed] = useState<FeedActivity[] | null>(null);
   const [kudosMap, setKudosMap] = useState<Map<string, KudosInfo>>(new Map());
+  const [weightLogs, setWeightLogs] = useState<WeightLog[]>([]);
+  const [weightRefresh, setWeightRefresh] = useState(0);
 
   useEffect(() => {
     if (status !== "authed" || !session) return;
     let cancelled = false;
     (async () => {
-      const [rows, goals, onboardingMileage, recentRecovery, today] = await Promise.all([
+      const [rows, goals, onboardingMileage, recentRecovery, today, weights] = await Promise.all([
         listActivities(session.userId, 200),
         getGoals(session.userId),
         getOnboardingWeeklyMileage(session.userId),
         listRecentRecovery(session.userId, 7),
         getTodayRecovery(session.userId),
+        listWeightLogs(session.userId),
       ]);
       if (cancelled) return;
 
       setActivities(rows);
       setTodayRecovery(today);
       setRecentRecovery(recentRecovery);
+      setWeightLogs(weights);
       const avgScore = averageRecentScore(recentRecovery, 7);
       setRecoveryScore(avgScore);
 
@@ -99,7 +107,7 @@ export function HomeClient() {
     return () => {
       cancelled = true;
     };
-  }, [status, session, recoveryRefresh]);
+  }, [status, session, recoveryRefresh, weightRefresh]);
 
   const mileage = activities ? weeklyMileage(activities) : null;
   const streak = activities ? currentStreak(activities) : null;
@@ -324,6 +332,15 @@ export function HomeClient() {
             onClick={() => setOpenStat(runningFitnessDetail)}
           />
         </section>
+      )}
+
+      {status === "authed" && session && activities && activities.length > 0 && (
+        <BodyMassCard
+          userId={session.userId}
+          activities={activities}
+          weightTrend={weightTrend(weightLogs)}
+          onWeightLogged={() => setWeightRefresh((n) => n + 1)}
+        />
       )}
 
       {status === "authed" && (

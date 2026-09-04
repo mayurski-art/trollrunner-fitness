@@ -1,7 +1,8 @@
 # COROS-style UI — design doc
 
 Status: **Phases 1-4 shipped.** Terminology, card primitives, the four real
-cards and the responsive grid are all on main. Phase 5 (Body Mass) is not built.
+cards, the responsive grid, HR-based Efficiency Factor, and the interactive
+muscle-map Body Mass card (Phase 5) are all on main.
 
 ## Why
 
@@ -168,7 +169,10 @@ Phases merge to main individually as each completes.
 2. **Placement** — the cards sit at the top of the existing home screen, above
    the older stat tiles, rather than in a separate tab.
 3. **Reordering** — fixed order for now; no Edit screen.
-4. **Body Mass** — out of scope (Phase 5, unbuilt).
+4. **Body Mass** — REVERSED after Phase 4 shipped: the user asked for an
+   interactive muscle map (click a region for recent sets + a tip), which
+   turned out to need almost no new analysis (hybrid.ts already had it) —
+   see the Phase 5 section below.
 
 ## What shipped
 
@@ -258,3 +262,69 @@ vs 4mo ago") rather than implying parity with the watch.
 `avgHeartRate: null` on every row rather than selecting the column — heart
 rate is personal training data, not something a friend's feed card should
 show by default.
+
+## Phase 5 — Body Mass card (interactive muscle map)
+
+The user's ask, after seeing Phase 4 shipped: "the body mass heatmap ...
+should be really interactive. clicking on a certain part of the muscle
+pulls up recent workouts and future recommendations. tip for improvement."
+
+### What was already there
+
+hybrid.ts already classified every logged strength set into 6 trainable
+movement patterns (squat, hinge, push, pull, calf, core) plus an isolation
+catch-all, and computed per-pattern volume share, under-trained gaps, and
+stalled-lift trends — all real analysis, built for the Coach page's hybrid
+recommendations. isometrics.ts already picked a specific isometric
+recommendation per gap or stall. The muscle map click-through needed almost
+no new analysis; it needed a visualization layer and a per-region assembly
+of what already existed.
+
+### What shipped
+
+- `supabase/fit_body_weight.sql` — a real weight-log table (the user chose
+  to build weight tracking in this phase too, not defer it). Separate from
+  `fit_profiles.weight_kg`, which is a single onboarding snapshot, not a
+  time series. **Needs to be run once**, same as every other `fit_*.sql`.
+- `src/lib/bodyweight/` — types, API (list + log), and a trend helper.
+- `src/lib/coach/muscle-map.ts` — maps hybrid.ts's 6 patterns onto 6
+  clickable `MuscleRegion`s, with `regionDetail()` assembling the full
+  click-through (volume share, gap status, recent sets, a stalled-lift
+  callout, one tip) per region entirely from existing hybrid.ts /
+  isometrics.ts machinery plus a fresh per-exercise pass for recent sets
+  (a HybridProfile does not retain individual sets, only pattern totals).
+  Isolation work (curls, triceps, flys) has no region of its own — it is
+  folded into whichever pattern it accessories in practice.
+- `src/components/bodymass/` — `MuscleSilhouette` (the clickable SVG),
+  `RegionDetailPanel`, and `BodyMassCard` wiring both together with the
+  weight row. Rendered full-width below the 4-card grid rather than as a
+  5th grid cell — an interactive silhouette + expandable panel doesn't fit
+  StatCard's number-left/viz-right skeleton.
+
+### A real design mistake, caught before shipping
+
+The first silhouette was one front-view figure with "upper back" drawn as
+slivers beside the chest. It rendered invisible — hidden entirely behind
+the chest shape — which is worse than ugly: it silently told the user
+"back" is not clickable/does not exist. A single front view genuinely
+cannot show a muscle that is anatomically on the other side of the body.
+
+Asked the user rather than guessing further: front+back side by side (what
+COROS's own screen does) vs. a non-anatomical schematic grid. They chose
+front+back. Rebuilt as two clean figures — front carries chest/shoulders,
+core, quads; back carries upper back, hamstrings, calves — every region now
+has a real, visible, correctly-shaped spot.
+
+### A real bug, caught by screenshotting rather than trusting the types
+
+`BodyMassCard` originally passed `hybridProfile.underTrained` (type
+`Pattern[]`, values like `"calf"`, `"hinge"`) straight to the silhouette's
+`underTrained: MuscleRegion[]` prop via an `as MuscleRegion[]` cast. The
+cast compiled and looked plausible, but `Pattern` and `MuscleRegion` are
+different vocabularies — `"calf"` ≠ `"calves"`, `"hinge"` ≠ `"hamstrings"`
+— so two of three actually-under-trained regions silently rendered as
+trained (teal, not amber) in a build that typechecked cleanly. Screenshotted
+against known synthetic gaps, the mismatch was visible immediately; fixed
+by deriving the region list from `map.regions[region].underTrained` (already
+computed correctly by muscle-map.ts) instead of re-deriving it from the raw
+Pattern array in the component.
