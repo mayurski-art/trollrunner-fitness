@@ -23,6 +23,13 @@ import { getKudosInfo, type KudosInfo } from "@/lib/social/kudos";
 import { FriendActivityCard } from "@/components/social/friend-activity-card";
 import { Skeleton, SkeletonList } from "@/components/ui/skeleton";
 import { StatDetailModal, type StatDetail } from "@/components/analytics/stat-detail-modal";
+import {
+  WeeklyTrainingLoadCard,
+  TrainingStatusCard,
+  RecoveryCard,
+  RunningFitnessCard,
+} from "@/components/progress/cards";
+import { recentLoadDays, suggestedWeeklyLoad, runningFitness } from "@/lib/coach/progress-cards";
 
 const TODAY_INDEX = todayDayLabel();
 
@@ -111,6 +118,68 @@ export function HomeClient() {
     (best, w) => (!best || w.mileage > best.mileage ? w : best),
     null
   );
+
+  // Progress-card detail views. Each mirrors the card's number so tapping a
+  // card explains the same figure it shows, rather than a related one.
+  const loadStatus = load ? interpretLoad(load, deviceStatus()) : null;
+  const loadDays = activities ? recentLoadDays(activities, 7) : null;
+  const suggested = load ? suggestedWeeklyLoad(load.baseFitness) : null;
+  const fitness = activities ? runningFitness(activities) : null;
+
+  const weeklyLoadDetail: StatDetail = {
+    label: "Weekly Training Load",
+    value: loadDays ? loadDays.total.toLocaleString() : "—",
+    explanation:
+      "Your total training load over the last 7 days, in the same TRIMP units your COROS uses. Sessions with a device-recorded load use that figure directly; the rest are estimated from duration and effort." +
+      (suggested
+        ? ` The suggested ${suggested.low.toLocaleString()}-${suggested.high.toLocaleString()} band is derived from your Base Fitness — roughly a week's worth of your 42-day average, with headroom either side.`
+        : ""),
+    chart: {
+      data: (loadDays ?? { values: [], labels: [] }).values.map((v, i) => ({
+        label: (loadDays as { labels: string[] }).labels[i],
+        value: v,
+      })),
+      unit: "load",
+    },
+  };
+
+  const trainingStatusDetail: StatDetail = {
+    label: "Training Status",
+    value: loadStatus?.label ?? "—",
+    explanation: loadStatus?.why ?? "Log a few sessions to build a training-load trend.",
+    chart: { data: weeks.map((w) => ({ label: w.label, value: w.mileage })), unit: "mi" },
+    facts: load
+      ? [
+          { label: "Load Impact (7 days)", value: String(load.loadImpact) },
+          { label: "Base Fitness (42 days)", value: String(load.baseFitness) },
+          { label: "Intensity Trend", value: `${load.intensityTrendPct}%` },
+        ]
+      : undefined,
+  };
+
+  const recoveryDetail: StatDetail = {
+    label: "Recovery",
+    value: recoveryScore !== null ? `${recoveryScore}%` : "—",
+    explanation:
+      "A 7-day average of your daily check-ins, scored out of 100 from sleep, soreness and stress. This is built from what you log by hand — unlike your watch, this app has no overnight sensor data.",
+    chart: {
+      data: recentRecovery
+        .map((r) => ({ label: r.logDate.slice(5), value: scoreFor(r) ?? 0 }))
+        .reverse(),
+      unit: "/100",
+    },
+  };
+
+  const runningFitnessDetail: StatDetail = {
+    label: "Running Fitness",
+    value: fitness ? fitness.score.toFixed(1) : "—",
+    explanation:
+      "A 0-100 score from your predicted marathon time, using Riegel's formula on your fastest recent run. Note this is NOT the same number your COROS shows: the watch computes Running Fitness from heart-rate data this app never sees, so the two will not match.",
+    chart: { data: weeks.map((w) => ({ label: w.label, value: w.mileage })), unit: "mi" },
+    facts: fitness?.marathon
+      ? [{ label: "Predicted marathon", value: fitness.marathon }]
+      : undefined,
+  };
 
   const stats: {
     label: string;
@@ -226,6 +295,34 @@ export function HomeClient() {
       )}
 
       <OnboardingBanner />
+
+      {status === "authed" && activities && activities.length > 0 && load && loadStatus && (
+        <section
+          aria-label="Progress"
+          className="grid grid-cols-1 gap-3 lg:grid-cols-2"
+        >
+          <WeeklyTrainingLoadCard
+            activities={activities}
+            baseFitness={load.baseFitness}
+            onClick={() => setOpenStat(weeklyLoadDetail)}
+          />
+          <TrainingStatusCard
+            activities={activities}
+            load={load}
+            status={loadStatus}
+            onClick={() => setOpenStat(trainingStatusDetail)}
+          />
+          <RecoveryCard
+            score={recoveryScore}
+            status={interpretScore(recoveryScore)}
+            onClick={() => setOpenStat(recoveryDetail)}
+          />
+          <RunningFitnessCard
+            activities={activities}
+            onClick={() => setOpenStat(runningFitnessDetail)}
+          />
+        </section>
+      )}
 
       {status === "authed" && (
         <section aria-label="Your stats" className="grid grid-cols-2 gap-3 lg:grid-cols-4">

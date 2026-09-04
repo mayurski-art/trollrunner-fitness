@@ -102,7 +102,7 @@ function dayKey(iso: string): string {
   return d.toISOString().slice(0, 10);
 }
 
-function dailyLoadSeries(activities: Activity[], days: number, asOf: Date): number[] {
+export function dailyLoadSeries(activities: Activity[], days: number, asOf: Date = new Date()): number[] {
   const loadByDay = new Map<string, number>();
   for (const a of activities) {
     const key = dayKey(a.occurredAt);

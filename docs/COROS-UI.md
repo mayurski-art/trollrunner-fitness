@@ -1,6 +1,7 @@
 # COROS-style UI — design doc
 
-Status: **awaiting decisions.** No code written yet.
+Status: **Phases 1-4 shipped.** Terminology, card primitives, the four real
+cards and the responsive grid are all on main. Phase 5 (Body Mass) is not built.
 
 ## Why
 
@@ -37,17 +38,17 @@ Mapped against `src/lib/coach/training-load.ts`:
 
 Three renames are clean swaps. The fourth is the interesting one.
 
-### TSB has no COROS equivalent — proposal: drop it
+### TSB has no COROS equivalent — dropped
 
 COROS never subtracts. It computes the same relationship as a **ratio**, shows
 it as a percentage, and gives it named bands. Our TSB and our ACWR are two
 views of the identical underlying pair, so showing both is redundant — and the
 one to keep is obviously the one the watch uses.
 
-So: **delete TSB from the UI** and show Intensity Trend as a percentage with
-the COROS bands. `tsb` stays in the `TrainingLoad` type (harmless, already
-computed) but stops being displayed. This kills the confusing number outright
-rather than renaming it into something that sounds official but isn't.
+So: **TSB is gone** and Intensity Trend is shown as a percentage with the
+COROS bands. The field was removed from `TrainingLoad` entirely rather than
+left computed-but-hidden — this kills the confusing number outright instead of
+renaming it into something that sounds official but isn't.
 
 Your `-10.4` becomes **Intensity Trend 119%** — same information, watch's
 framing, and a band name ("Optimized") instead of a bare negative number.
@@ -65,7 +66,7 @@ On track" ladder in `interpretLoad()`:
 | Resuming/Performance | 50–79% | Increased load improving fitness / ready for effort |
 | Decreasing | 0–49% | Low recent Training Load, Base Fitness declining |
 
-Our existing `acwrReliable` guard stays — with under ~28 days of history the
+Our existing reliability guard stays (now `trendReliable`) — with under ~28 days of history the
 42-day average hasn't converged and the percentage reads high for arithmetic
 reasons rather than training ones. That caveat is ours to keep; the watch
 doesn't need it because it has your whole history.
@@ -133,17 +134,16 @@ or fabricated. That's a worse product than 4 good cards — and filling them
 with placeholder numbers would break the thing this app has been careful about
 all along: every number traceable to something you actually logged.
 
-Recommended: **build the card system faithfully, populate the 4 real cards,
-and omit group B** rather than shipping empty shells. The visual language is
-what makes it feel like COROS; the empty cards are what would make it feel
-broken.
+Decided: **build the card system faithfully, populate the 4 real cards, and
+omit group B** rather than shipping empty shells. The visual language is what
+makes it feel like COROS; the empty cards are what would make it feel broken.
 
 ## Desktop
 
-COROS has no desktop app, so there's no layout to copy — this part is ours to
-invent in their style. Proposal: same cards, same internals, reflowed into a
-2-up (≥900px) or 3-up (≥1300px) masonry grid, max-width ~1200px centered.
-Cards keep their exact mobile composition so the two read as one product.
+COROS has no desktop app, so there was no layout to copy — this part is ours,
+in their style. Shipped: the same cards with the same internals, reflowed into
+a 2-up grid from `lg`. Cards keep their exact mobile composition so the two
+read as one product. See "What shipped" for why 3-up was rejected.
 
 ## Scope
 
@@ -151,8 +151,8 @@ Phase 1 — terminology. Rename CTL/ATL/ACWR, drop TSB, adopt COROS bands.
 Touches `training-load.ts`, `coach-client.tsx`, `home-client.tsx`,
 `answer-library.ts`. Small, self-contained, shippable alone.
 
-Phase 2 — card primitives. `<StatCard>` shell plus the four visualization
-types (bar column, gauge arc, sparkline, range bar).
+Phase 2 — card primitives. `<StatCard>` shell plus the visualization types
+actually needed (bar column, gauge arc, needle gauge).
 
 Phase 3 — the four real cards, mobile column.
 
@@ -162,12 +162,33 @@ Phase 5 — optional: Body Mass card with a hand-logged weight table.
 
 Phases merge to main individually as each completes.
 
-## Open decisions
+## Decisions taken
 
-1. **Scope of the clone** — 4 real cards only, or also build empty shells for
-   the watch-only cards?
-2. **Where does this live** — replace the current home screen, or add a new
-   "Progress" tab beside it?
-3. **Card reordering** — COROS has an Edit screen for sorting/removing cards.
-   Worth building, or fixed order for now?
-4. **Body Mass** — in or out of scope?
+1. **Scope** — 4 real cards only. No empty shells for the watch-only cards.
+2. **Placement** — the cards sit at the top of the existing home screen, above
+   the older stat tiles, rather than in a separate tab.
+3. **Reordering** — fixed order for now; no Edit screen.
+4. **Body Mass** — out of scope (Phase 5, unbuilt).
+
+## What shipped
+
+`src/components/progress/stat-card.tsx` — the card shell and the 3-up
+`StatRow` footer. `visuals.tsx` — DayBars, GaugeArc, NeedleGauge.
+`src/lib/coach/progress-cards.ts` — the derivations (daily series, suggested
+weekly band, running-fitness score). `cards.tsx` — the four cards.
+
+Layout: single column on phones, two columns from `lg`. Three columns were
+tried and rejected — at ~312px per card the sub-lines ("Suggested 1,081-1,590",
+"Intensity Trend") wrapped and broke the alignment between the value and its
+visualization.
+
+Verified in headless Chrome at 500px and 1440px: the widest child sits 17px
+inside the card edge on every card, and scrollWidth equals clientWidth, so
+nothing overflows and the page never scrolls sideways.
+
+### One number that will not match your watch
+
+Running Fitness is derived from the Riegel marathon prediction and mapped onto
+0-100. COROS computes its own Running Fitness from heart-rate data this app
+never sees, so the two figures are unrelated and will differ. The card's detail
+view says so explicitly rather than letting the shared name imply agreement.
