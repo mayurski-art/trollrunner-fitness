@@ -17,6 +17,8 @@ export type Activity = {
   durationSec: number | null;
   elevationFt: number | null;
   effort: number | null;
+  /** Average heart rate for the session, in bpm. Device-reported only — never estimated. */
+  avgHeartRate: number | null;
   sets: { exercise: string; weight_lb: number | null; reps: number | null }[];
 };
 
@@ -28,6 +30,8 @@ export type NewRunActivity = {
   durationMin: string;
   elevationFt: string;
   effort: number | null;
+  /** bpm, as a string for the form input; parsed to number | null on submit. */
+  avgHeartRate?: string;
   notes: string;
 };
 

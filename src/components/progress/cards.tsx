@@ -160,16 +160,23 @@ export function RunningFitnessCard({
   const fitness = runningFitness(activities);
   if (!fitness) return null;
 
+  const trendSub =
+    fitness.basis === "efficiency" && fitness.changePct !== undefined
+      ? `${fitness.changePct >= 0 ? "+" : ""}${fitness.changePct}% efficiency vs 4mo ago`
+      : fitness.marathon
+        ? `Marathon ${fitness.marathon}`
+        : undefined;
+
   return (
     <StatCard
       title="Running Fitness"
       icon={<Glyph color="#fbbf24">RF</Glyph>}
       value={fitness.score.toFixed(1)}
-      sub={fitness.marathon ? `Marathon ${fitness.marathon}` : undefined}
+      sub={trendSub}
       visual={<NeedleGauge value={fitness.score} />}
       onClick={onClick}
       ariaLabel={`Running Fitness: ${fitness.score} out of 100${
-        fitness.marathon ? `, predicted marathon ${fitness.marathon}` : ""
+        trendSub ? `, ${trendSub}` : ""
       }. Show detail`}
     />
   );

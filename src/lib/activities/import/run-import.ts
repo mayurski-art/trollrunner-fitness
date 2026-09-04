@@ -223,6 +223,7 @@ export async function importDetailedRuns(
         distanceMi: run.distanceMi,
         durationMin: run.durationMin,
         elevationFt: run.elevationFt,
+        avgHeartRate: run.avgHeartRate !== undefined ? String(run.avgHeartRate) : undefined,
         effort: null,
         notes: run.notes,
       });

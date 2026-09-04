@@ -1,6 +1,7 @@
 import type { Activity } from "@/lib/activities/types";
 import { dailyLoadSeries } from "./training-load";
 import { predictRaceTimes, formatTime } from "./race-predictor";
+import { efficiencyTrend } from "./efficiency";
 
 const DAY_LETTERS = ["S", "M", "T", "W", "T", "F", "S"];
 
@@ -60,24 +61,59 @@ export type RunningFitness = {
   score: number;
   /** Predicted marathon time, the sub-line COROS puts under the score. */
   marathon: string | null;
+  /**
+   * Which computation produced the score. "efficiency" is the closer analogue
+   * to what COROS itself computes (both are heart-rate-effort based); "pace"
+   * is the Riegel fallback used when there isn't enough heart-rate history
+   * yet. The card and its detail view read this to phrase the caveat.
+   */
+  basis: "efficiency" | "pace";
+  /** Only set when basis is "efficiency" — the underlying trend read. */
+  changePct?: number;
 };
 
 /**
- * A 0-100 running-fitness score derived from predicted marathon time.
+ * A 0-100 running-fitness score, preferring heart-rate Efficiency Factor when
+ * there's enough HR history and falling back to a pace-only Riegel estimate
+ * otherwise.
  *
- * COROS computes its own Running Fitness from heart-rate-based effort data we
- * never see, so this is NOT the same number and will not match the watch. It
- * is an honest local analogue: the Riegel prediction already in the app,
- * mapped onto a 0-100 scale anchored at two reference marathons — 6:00 at the
- * bottom, 2:30 at the top — which spans the range of finishers this app is
- * ever likely to serve.
+ * Neither will match a COROS watch exactly — COROS has proprietary VO2max
+ * modeling this app doesn't — but the EF path is structurally the closer
+ * analogue: both it and the watch derive fitness from heart-rate effort
+ * rather than pace alone. The pace-only fallback exists because most
+ * historical runs here predate heart-rate logging (see fit_heart_rate.sql)
+ * and a run logged without a watch still deserves a fitness read.
  *
- * Returns null when there is no run good enough to predict from, rather than
+ * Returns null when neither computation has enough to work with, rather than
  * inventing a score.
  */
 export function runningFitness(activities: Activity[]): RunningFitness | null {
   const predictions = predictRaceTimes(activities);
   const marathon = predictions?.find((p) => p.label === "Marathon");
+  const marathonLabel = marathon ? formatTime(marathon.timeSec) : null;
+
+  const ef = efficiencyTrend(activities);
+  if (ef) {
+    // EF trend needs an anchor to become a 0-100 figure. Chosen against real
+    // logged runs rather than invented round numbers: an initial 0.03-0.09
+    // band scored a 9:32/mi effort at 173bpm around 10/100, because 0.09 was
+    // closer to elite territory than anything a recreational or strong
+    // amateur runner logging on a phone app will ever produce. 0.020 mph/bpm
+    // covers an easy recovery jog or walk-run; 0.055 is a strong amateur
+    // effort (roughly 8:00/mi at 145bpm) — the band a dedicated hobbyist
+    // spans, not an elite one.
+    const LOW = 0.02;
+    const HIGH = 0.055;
+    const frac = (ef.current - LOW) / (HIGH - LOW);
+    const score = Math.max(0, Math.min(100, frac * 100));
+    return {
+      score: Math.round(score * 10) / 10,
+      marathon: marathonLabel,
+      basis: "efficiency",
+      changePct: ef.changePct,
+    };
+  }
+
   if (!marathon) return null;
 
   const SLOW_SEC = 6 * 3600; // 6:00:00 -> 0
@@ -87,6 +123,7 @@ export function runningFitness(activities: Activity[]): RunningFitness | null {
 
   return {
     score: Math.round(score * 10) / 10,
-    marathon: formatTime(marathon.timeSec),
+    marathon: marathonLabel,
+    basis: "pace",
   };
 }

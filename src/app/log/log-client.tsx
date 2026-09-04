@@ -143,6 +143,7 @@ function RunForm({
   const [durationMin, setDurationMin] = useState("");
   const [elevationFt, setElevationFt] = useState("");
   const [effort, setEffort] = useState<number | null>(null);
+  const [avgHeartRate, setAvgHeartRate] = useState("");
   const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -160,6 +161,7 @@ function RunForm({
         durationMin,
         elevationFt,
         effort,
+        avgHeartRate,
         notes,
       });
       await onSaved();
@@ -218,6 +220,12 @@ function RunForm({
           type="number"
           value={elevationFt}
           onChange={setElevationFt}
+        />
+        <TextField
+          label="Avg heart rate (bpm)"
+          type="number"
+          value={avgHeartRate}
+          onChange={setAvgHeartRate}
         />
       </div>
 

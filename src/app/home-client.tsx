@@ -174,7 +174,9 @@ export function HomeClient() {
     label: "Running Fitness",
     value: fitness ? fitness.score.toFixed(1) : "—",
     explanation:
-      "A 0-100 score from your predicted marathon time, using Riegel's formula on your fastest recent run. Note this is NOT the same number your COROS shows: the watch computes Running Fitness from heart-rate data this app never sees, so the two will not match.",
+      fitness?.basis === "efficiency"
+        ? "A 0-100 score from your Efficiency Factor — pace divided by average heart rate, from runs where your watch's HR was logged. This is the same idea your COROS uses (both read fitness from heart-rate effort, not pace alone), but the two numbers still won't match exactly: COROS applies its own proprietary VO2max modeling on top. As you get fitter this rises even at a constant pace, because you cover more ground per heartbeat."
+        : "A 0-100 score from your predicted marathon time, using Riegel's formula on your fastest recent run. This is a pace-only fallback — it will start using heart rate instead, and read closer to what your COROS shows, once a handful of your logged runs carry an average heart rate.",
     chart: { data: weeks.map((w) => ({ label: w.label, value: w.mileage })), unit: "mi" },
     facts: fitness?.marathon
       ? [{ label: "Predicted marathon", value: fitness.marathon }]

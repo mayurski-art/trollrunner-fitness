@@ -198,3 +198,63 @@ Running Fitness is derived from the Riegel marathon prediction and mapped onto
 0-100. COROS computes its own Running Fitness from heart-rate data this app
 never sees, so the two figures are unrelated and will differ. The card's detail
 view says so explicitly rather than letting the shared name imply agreement.
+
+## Heart-rate Efficiency Factor (post-Phase-4 addition)
+
+Running Fitness originally used only the Riegel pace prediction, with an
+explicit caveat that it would never match the watch's HR-based number. The
+user's response: "maybe fitness can be assessed based on average heart rate
+of workouts" — correct, and it turned out the data already existed.
+
+### The gap
+
+`DETAILED_RUNS` (`runs-detailed.ts`) carries `avgHeartRate` on 24 of 26 real
+runs (111-177bpm), dictated from the user's own COROS history. But
+`run-import.ts` never passed it to `logRun`, `Activity` had no field for it,
+and `fit_activities` had no column. It was silently dropped at import.
+
+### What shipped
+
+- `supabase/fit_heart_rate.sql` — `avg_heart_rate smallint` on
+  `fit_activities`, same idempotent-migration pattern as `fit_effort.sql`.
+  **The user needs to run this once** in the Supabase SQL editor, same as
+  every other `fit_*.sql` file, before the column exists live.
+- `Activity.avgHeartRate: number | null` threaded through the type, the API
+  row mapping, `logRun`, the manual log form (`log-client.tsx`), and the
+  import (`run-import.ts`). Re-running the existing import at `/log/import`
+  backfills the 24 runs that already have HR dictated.
+- `src/lib/coach/efficiency.ts` — Efficiency Factor (pace mph / avg bpm), the
+  standard endurance-coaching aerobic-fitness metric. Same run filters as
+  `race-predictor.ts`'s `bestReferenceRun` (excludes weekly summaries and
+  walks) plus the same 120-day window used elsewhere in `coach/`.
+- `runningFitness()` in `progress-cards.ts` now prefers EF over Riegel
+  whenever there are 6+ HR-carrying runs in the last 120 days, falling back
+  to the pace-only Riegel score otherwise (most historical runs, or any
+  future run logged without a watch). The card's `basis` field says which.
+
+### Anchor calibration — caught and fixed before shipping
+
+The first EF-to-0-100 anchor band (0.02-0.09 mph/bpm) was invented from round
+numbers with no grounding. Checked against the user's actual 21 HR-carrying
+runs (real range: EF 0.022-0.040, median 0.036), it scored their normal
+running effort — 9:32/mi at 173bpm — around 10/100, because 0.09 was closer
+to elite-marathoner territory than anything a recreational or strong amateur
+runner produces. Recalibrated to 0.02-0.055 (an easy jog to a strong-amateur
+8:00/mi @ 145bpm), which puts the user's real runs around 45-50/100 — mid-
+scale, appropriate for a consistent recreational runner mid-block, with real
+headroom above.
+
+### Why EF is still not the same number as COROS's Running Fitness
+
+Structurally closer than Riegel — both EF and the watch's figure are derived
+from heart-rate effort rather than pace alone — but COROS layers proprietary
+VO2max modeling on top that this app cannot reproduce. The detail view says
+so; the card's sub-line shows the efficiency trend (e.g. "+5.3% efficiency
+vs 4mo ago") rather than implying parity with the watch.
+
+### Privacy note
+
+`src/lib/social/feed.ts` (friends' activity feed) explicitly sets
+`avgHeartRate: null` on every row rather than selecting the column — heart
+rate is personal training data, not something a friend's feed card should
+show by default.

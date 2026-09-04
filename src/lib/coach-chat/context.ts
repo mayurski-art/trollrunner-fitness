@@ -19,6 +19,7 @@ type ActivityRow = {
   duration_sec: number | null;
   elevation_ft: number | null;
   effort: number | null;
+  avg_heart_rate: number | null;
   fit_strength_sets: { exercise: string; weight_lb: number | null; reps: number | null }[];
 };
 
@@ -48,7 +49,7 @@ async function fetchActivities(sb: SupabaseClient, userId: string): Promise<Acti
   const { data } = await sb
     .from("fit_activities")
     .select(
-      "id, type, title, notes, occurred_at, distance_mi, duration_sec, elevation_ft, effort, fit_strength_sets(exercise, weight_lb, reps)"
+      "id, type, title, notes, occurred_at, distance_mi, duration_sec, elevation_ft, effort, avg_heart_rate, fit_strength_sets(exercise, weight_lb, reps)"
     )
     .eq("user_id", userId)
     .eq("source", "native")
@@ -64,6 +65,7 @@ async function fetchActivities(sb: SupabaseClient, userId: string): Promise<Acti
     durationSec: row.duration_sec,
     elevationFt: row.elevation_ft,
     effort: row.effort,
+    avgHeartRate: row.avg_heart_rate,
     sets: row.fit_strength_sets || [],
   }));
 }

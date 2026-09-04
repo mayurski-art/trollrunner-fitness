@@ -57,6 +57,9 @@ export async function getFriendsFeed(userId: string, limit = 20): Promise<FeedAc
     durationSec: row.duration_sec,
     elevationFt: row.elevation_ft,
     effort: row.effort,
+    // Not selected above and always null here on purpose: heart rate is
+    // personal training data, not something a friend's feed card shows.
+    avgHeartRate: null,
     sets: row.fit_strength_sets || [],
     owner: profileMap.get(row.user_id) || { id: row.user_id, username: "runner", avatarUrl: null },
   }));
