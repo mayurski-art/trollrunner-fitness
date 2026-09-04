@@ -59,6 +59,23 @@ export function AnalyticsSection({ userId }: { userId: string }) {
     return weeklyTrend(activities, 8);
   }, [activities, range, customFrom, customTo]);
 
+  // What one bar covers, so the selected-bar readout says "day"/"week"/"month"
+  // to match whatever bucketing `trendPoints` just used.
+  const periodNoun = useMemo(() => {
+    if (range === "week") return "day";
+    if (range === "year") return "month";
+    if (range === "custom" && customFrom && customTo) {
+      const days = Math.max(
+        1,
+        Math.round(
+          (new Date(customTo).getTime() - new Date(customFrom).getTime()) / 86400000
+        )
+      );
+      return days <= 31 ? "day" : "week";
+    }
+    return "week";
+  }, [range, customFrom, customTo]);
+
   const prTimeline = useMemo(() => (activities ? computePRTimeline(activities) : []), [activities]);
   const summary = useMemo(
     () => (activities ? annualSummary(activities, year) : null),
@@ -117,13 +134,13 @@ export function AnalyticsSection({ userId }: { userId: string }) {
           <div className="card rounded-2xl p-4">
             <h3 className="text-sm font-semibold">Mileage</h3>
             <div className="mt-2">
-              <TrendChart data={trendPoints.map((p) => ({ label: p.label, value: p.mileage }))} unit="mi" />
+              <TrendChart data={trendPoints.map((p) => ({ label: p.label, value: p.mileage }))} unit="mi" periodNoun={periodNoun} />
             </div>
           </div>
           <div className="card rounded-2xl p-4">
             <h3 className="text-sm font-semibold">Strength volume</h3>
             <div className="mt-2">
-              <TrendChart data={trendPoints.map((p) => ({ label: p.label, value: p.volume }))} unit="lb" />
+              <TrendChart data={trendPoints.map((p) => ({ label: p.label, value: p.volume }))} unit="lb" periodNoun={periodNoun} />
             </div>
           </div>
         </div>

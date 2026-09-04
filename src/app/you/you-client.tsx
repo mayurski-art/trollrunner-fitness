@@ -11,6 +11,7 @@ import { listActivities } from "@/lib/activities/api";
 import { computeBadges, type Badge } from "@/lib/gamification/badges";
 import { BadgesGrid } from "@/components/gamification/badges-grid";
 import { HumorToggle } from "@/components/gamification/humor-toggle";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { SkeletonPage } from "@/components/ui/skeleton";
 import { GoalsEditor } from "@/components/onboarding/goals-editor";
 
@@ -103,6 +104,8 @@ function ProfileView() {
       <GoalsEditor userId={session.userId} />
 
       {badges && <BadgesGrid badges={badges} />}
+
+      <AppearanceCard />
 
       <HumorToggle userId={session.userId} />
 
@@ -226,7 +229,27 @@ function AuthForms() {
           {busy ? "Please wait…" : mode === "login" ? "Log in" : "Create account"}
         </button>
       </form>
+
+      {/* Theme is a device preference, not an account setting — signed-out
+          visitors on mobile need it here too, since the header nav is md-only. */}
+      <div className="flex justify-center">
+        <ThemeToggle />
+      </div>
     </div>
+  );
+}
+
+function AppearanceCard() {
+  return (
+    <section className="card rounded-2xl p-5">
+      <h2 className="text-sm font-semibold">Appearance</h2>
+      <p className="mt-1 text-xs text-muted">
+        Saved on this device. System follows your phone or computer&rsquo;s setting.
+      </p>
+      <div className="mt-3">
+        <ThemeToggle />
+      </div>
+    </section>
   );
 }
 

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Geist_Mono } from "next/font/google";
 import { AppShell } from "@/components/app-shell";
 import { SessionProvider } from "@/lib/accounts/session-context";
+import { ThemeProvider, THEME_INIT_SCRIPT } from "@/lib/theme/theme-context";
 import "./globals.css";
 
 const inter = Inter({
@@ -45,7 +46,11 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0b0b0d",
+  // Per-scheme so the mobile browser chrome matches the theme on screen.
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f4f4f5" },
+    { media: "(prefers-color-scheme: dark)", color: "#0b0b0d" },
+  ],
 };
 
 export default function RootLayout({
@@ -57,7 +62,13 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${inter.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
+      <head>
+        {/* Stamps data-theme before first paint so a stored light/dark choice
+            never flashes the other theme on load. */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      </head>
       <body className="min-h-full">
         <a
           href="#main-content"
@@ -65,9 +76,11 @@ export default function RootLayout({
         >
           Skip to main content
         </a>
-        <SessionProvider>
-          <AppShell>{children}</AppShell>
-        </SessionProvider>
+        <ThemeProvider>
+          <SessionProvider>
+            <AppShell>{children}</AppShell>
+          </SessionProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

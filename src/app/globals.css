@@ -1,7 +1,15 @@
 @import "tailwindcss";
 
-/* Dark-first brand tokens — light theme arrives later as a toggle. */
-:root {
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/*
+ * Brand tokens. Dark is the default look, but every surface in the app reads
+ * from these variables, so a theme is purely a token swap — no per-component
+ * dark: variants. `[data-theme]` is stamped on <html> by ThemeProvider before
+ * paint; the media query below covers "system" mode, where nothing is stamped.
+ */
+:root,
+[data-theme="dark"] {
   --background: #0b0b0d;
   --foreground: #f5f5f6;
   --surface: #131317;
@@ -11,6 +19,68 @@
   --brand: #ff5a1f;
   --brand-strong: #ff7a47;
   --brand-soft: rgba(255, 90, 31, 0.14);
+
+  --glow-a: rgba(255, 90, 31, 0.1);
+  --glow-b: rgba(255, 90, 31, 0.05);
+  --card-top: linear-gradient(180deg, var(--raised), var(--surface));
+  --card-inset: rgba(255, 255, 255, 0.03);
+  --card-shadow: 0 8px 20px -12px rgba(0, 0, 0, 0.6);
+  --card-shadow-hover: 0 12px 28px -14px rgba(0, 0, 0, 0.7);
+  --skeleton-sheen: rgba(255, 255, 255, 0.06);
+  --card-hover-line: rgba(255, 90, 31, 0.35);
+}
+
+/*
+ * Light theme. Not a naive inversion: the page sits on a warm off-white while
+ * cards go pure white and lift off it with a real shadow, so cards still read
+ * as raised the way they do in dark. `--raised` inverts its role here: in dark
+ * it sits above the card, in light it sits below it, so the ~40 `bg-raised`
+ * elements (selected pills, progress tracks, inset panels) stay visible.
+ * Brand shifts a touch deeper so orange text clears contrast on white.
+ */
+[data-theme="light"] {
+  --background: #f4f4f5;
+  --foreground: #18181b;
+  --surface: #ffffff;
+  --raised: #e9e9ec;
+  --line: rgba(0, 0, 0, 0.1);
+  --muted: #64646e;
+  --brand: #e6490f;
+  --brand-strong: #c73c08;
+  --brand-soft: rgba(230, 73, 15, 0.12);
+
+  --glow-a: rgba(255, 90, 31, 0.08);
+  --glow-b: rgba(255, 90, 31, 0.04);
+  --card-top: linear-gradient(180deg, #ffffff, #fbfbfc);
+  --card-inset: rgba(255, 255, 255, 0.9);
+  --card-shadow: 0 6px 16px -10px rgba(24, 24, 27, 0.22);
+  --card-shadow-hover: 0 12px 26px -12px rgba(24, 24, 27, 0.28);
+  --skeleton-sheen: rgba(0, 0, 0, 0.05);
+  --card-hover-line: rgba(230, 73, 15, 0.45);
+}
+
+/* "System" mode stamps no attribute, so match the OS preference here. */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) {
+    --background: #f4f4f5;
+    --foreground: #18181b;
+    --surface: #ffffff;
+    --raised: #e9e9ec;
+    --line: rgba(0, 0, 0, 0.1);
+    --muted: #64646e;
+    --brand: #e6490f;
+    --brand-strong: #c73c08;
+    --brand-soft: rgba(230, 73, 15, 0.12);
+
+    --glow-a: rgba(255, 90, 31, 0.08);
+    --glow-b: rgba(255, 90, 31, 0.04);
+    --card-top: linear-gradient(180deg, #ffffff, #fbfbfc);
+    --card-inset: rgba(255, 255, 255, 0.9);
+    --card-shadow: 0 6px 16px -10px rgba(24, 24, 27, 0.22);
+    --card-shadow-hover: 0 12px 26px -12px rgba(24, 24, 27, 0.28);
+    --skeleton-sheen: rgba(0, 0, 0, 0.05);
+    --card-hover-line: rgba(230, 73, 15, 0.45);
+  }
 }
 
 @theme inline {
@@ -27,11 +97,25 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/* Native controls (date pickers, scrollbars, form widgets) follow the theme. */
+:root,
+[data-theme="dark"] {
+  color-scheme: dark;
+}
+[data-theme="light"] {
+  color-scheme: light;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) {
+    color-scheme: light;
+  }
+}
+
 body {
   background: var(--background);
   background-image:
-    radial-gradient(ellipse 900px 500px at 15% -10%, rgba(255, 90, 31, 0.10), transparent 60%),
-    radial-gradient(ellipse 700px 500px at 100% 0%, rgba(255, 90, 31, 0.05), transparent 55%);
+    radial-gradient(ellipse 900px 500px at 15% -10%, var(--glow-a), transparent 60%),
+    radial-gradient(ellipse 700px 500px at 100% 0%, var(--glow-b), transparent 55%);
   background-repeat: no-repeat;
   background-attachment: fixed;
   color: var(--foreground);
@@ -40,11 +124,11 @@ body {
 
 /* Card surface with real depth — replaces flat `border-line bg-surface` pairs. */
 .card {
-  background: linear-gradient(180deg, var(--raised), var(--surface));
+  background: var(--card-top);
   border: 0.5px solid var(--line);
   box-shadow:
-    0 1px 0 0 rgba(255, 255, 255, 0.03) inset,
-    0 8px 20px -12px rgba(0, 0, 0, 0.6);
+    0 1px 0 0 var(--card-inset) inset,
+    var(--card-shadow);
 }
 
 .card-interactive {
@@ -52,10 +136,10 @@ body {
 }
 
 .card-interactive:hover {
-  border-color: rgba(255, 90, 31, 0.35);
+  border-color: var(--card-hover-line);
   box-shadow:
-    0 1px 0 0 rgba(255, 255, 255, 0.03) inset,
-    0 12px 28px -14px rgba(0, 0, 0, 0.7);
+    0 1px 0 0 var(--card-inset) inset,
+    var(--card-shadow-hover);
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -77,7 +161,7 @@ body {
   background-image: linear-gradient(
     90deg,
     var(--raised) 0%,
-    rgba(255, 255, 255, 0.06) 50%,
+    var(--skeleton-sheen) 50%,
     var(--raised) 100%
   );
   background-size: 200% 100%;

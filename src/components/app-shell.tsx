@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "@/lib/accounts/session-context";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 type Tab = {
   href: string;
@@ -126,6 +127,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             >
               Log activity
             </Link>
+            {/* Mobile reaches the same control on the You page — this nav is
+                md-only, so a header-only toggle would be unreachable there. */}
+            <div className="ml-2">
+              <ThemeToggle compact />
+            </div>
           </nav>
         </div>
       </header>
