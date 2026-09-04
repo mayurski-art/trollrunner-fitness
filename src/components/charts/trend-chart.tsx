@@ -134,12 +134,23 @@ export function TrendChart({
               radius={[4, 4, 0, 0]}
               maxBarSize={28}
               isAnimationActive={false}
-              onClick={(_, index) => select(activeIndex === index ? null : index)}
-              className="cursor-pointer"
             >
               {data.map((point, i) => (
                 <Cell
                   key={point.label + i}
+                  className="cursor-pointer"
+                  style={{ touchAction: "manipulation" }}
+                  // Recharts' <Bar onClick> is unreliable on touch — some
+                  // mobile browsers never fire it because Recharts' own
+                  // touch/hover plumbing consumes the tap first. Binding
+                  // directly on each <Cell>'s underlying <path>/<rect> and
+                  // handling both pointer and touch gets a real toggle on
+                  // phones, not just desktop mouse clicks.
+                  onClick={() => select(activeIndex === i ? null : i)}
+                  onTouchEnd={(e) => {
+                    e.preventDefault();
+                    select(activeIndex === i ? null : i);
+                  }}
                   fill={
                     activeIndex === null || activeIndex === i
                       ? "var(--brand)"
