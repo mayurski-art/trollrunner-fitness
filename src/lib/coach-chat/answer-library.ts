@@ -25,15 +25,15 @@ export const ANSWER_LIBRARY: AnswerEntry[] = [
     tier: "established",
     samples: ["how is my training going", "what's my training status", "am I overtraining", "how's my fitness right now"],
     render: (f) =>
-      `Your training status is "${f.loadStatus.label}". ${f.loadStatus.why} Right now: Fitness (CTL) ${f.load.ctl}, Fatigue (ATL) ${f.load.atl}, Form (TSB) ${f.load.tsb}.`,
+      `Your training status is "${f.loadStatus.label}". ${f.loadStatus.why} Right now: Load Impact ${f.load.loadImpact}, Base Fitness ${f.load.baseFitness}, Intensity Trend ${f.load.intensityTrendPct}%.`,
   },
   {
     id: "training_load_explain",
     topic: "training_load",
     tier: "established",
-    samples: ["what do CTL ATL TSB mean", "explain fitness fatigue form", "what is training load"],
+    samples: ["what do these numbers mean", "explain base fitness load impact intensity trend", "what is training load", "what is intensity trend"],
     render: (f) =>
-      `CTL (Fitness) is your 42-day rolling training load. ATL (Fatigue) is the same idea over 7 days. TSB (Form) is CTL minus ATL: positive means fresh, negative means carrying fatigue. Yours right now: CTL ${f.load.ctl}, ATL ${f.load.atl}, TSB ${f.load.tsb}.`,
+      `These are your COROS numbers. Base Fitness is the training load your body has been under for the last 42 days. Load Impact is the same idea over the last 7 days. Intensity Trend is Load Impact divided by Base Fitness: above 100% you're building, 80-99% you're maintaining, below that your base is drifting down. Yours right now: Load Impact ${f.load.loadImpact}, Base Fitness ${f.load.baseFitness}, Intensity Trend ${f.load.intensityTrendPct}%.`,
   },
   {
     id: "recovery_score",
@@ -88,7 +88,7 @@ export const ANSWER_LIBRARY: AnswerEntry[] = [
     tier: "established",
     samples: ["why am I plateauing", "why am I not improving", "why does my training feel stuck"],
     render: (f) =>
-      `Your Form (TSB) is ${f.load.tsb} and status is "${f.loadStatus.label}". ${f.loadStatus.why} A plateau is usually either not enough stimulus (TSB staying high, load flat) or too much fatigue masking fitness gains (TSB very negative) — check which one matches before changing anything drastic.`,
+      `Your Intensity Trend is ${f.load.intensityTrendPct}% and status is "${f.loadStatus.label}". ${f.loadStatus.why} A plateau is usually either not enough stimulus (Intensity Trend sitting below 100% with flat load) or too much fatigue masking fitness gains (Intensity Trend way above 150%) — check which one matches before changing anything drastic.`,
   },
   {
     id: "mileage_progress",
@@ -120,7 +120,7 @@ export const ANSWER_LIBRARY: AnswerEntry[] = [
     tier: "established",
     samples: ["should I take a rest day", "should I skip today's workout", "am I too tired to train"],
     render: (f) =>
-      `Form (TSB) is ${f.load.tsb} and recovery is "${f.recoveryStatus.label}"${
+      `Intensity Trend is ${f.load.intensityTrendPct}% and recovery is "${f.recoveryStatus.label}"${
         f.recoveryScore !== null ? ` (${f.recoveryScore}/100)` : ""
       }. ${
         f.loadStatus.tone === "critical" || f.recoveryStatus.tone === "critical"
@@ -229,7 +229,7 @@ export const ANSWER_LIBRARY: AnswerEntry[] = [
     sources: ["Sports Medicine 2020 systematic review"],
     samples: ["how much can I safely increase my training", "what's a safe way to ramp up mileage"],
     render: () =>
-      "Sudden jumps in training load relative to your recent baseline are linked to higher injury risk — that part is well supported. The specific 'ACWR' ratio numbers (like 1.0-1.5) you'll see quoted online are more folklore than precise science; sports scientists have criticized the math behind them. Safer takeaway: avoid big spikes, not a magic ratio.",
+      "Sudden jumps in training load relative to your recent baseline are linked to higher injury risk — that part is well supported. The specific ratio numbers you'll see quoted online (the acute:chronic workload ratio, which is what your COROS shows as Intensity Trend) are more folklore than precise science; sports scientists have criticized the math behind them. Safer takeaway: avoid big spikes, not a magic ratio — treat the Intensity Trend bands as a rough guide rather than a target.",
   },
   {
     id: "ten_percent_rule",

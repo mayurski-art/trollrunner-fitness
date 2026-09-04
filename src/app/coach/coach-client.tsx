@@ -146,9 +146,9 @@ export function CoachClient() {
               </span>
             </div>
             <div className="mt-3 grid grid-cols-3 gap-3">
-              <Stat label="Fitness (CTL)" value={load.ctl} />
-              <Stat label="Fatigue (ATL)" value={load.atl} />
-              <Stat label="Form (TSB)" value={load.tsb} />
+              <Stat label="Load Impact" value={load.loadImpact} />
+              <Stat label="Base Fitness" value={load.baseFitness} />
+              <Stat label="Intensity Trend" value={`${load.intensityTrendPct}%`} />
             </div>
             <p className="mt-3 text-sm text-muted">{loadStatus.why}</p>
             <div className="mt-3 rounded-xl border border-line bg-raised p-3">
@@ -486,7 +486,7 @@ function TipCard({ title, tips }: { title: string; tips: string[] }) {
   );
 }
 
-function Stat({ label, value }: { label: string; value: number }) {
+function Stat({ label, value }: { label: string; value: number | string }) {
   return (
     <div className="rounded-xl border border-line bg-raised p-3 text-center">
       <p className="text-xs text-muted">{label}</p>

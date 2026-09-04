@@ -122,10 +122,10 @@ function dailyLoadSeries(activities: Activity[], days: number, asOf: Date): numb
  *
  * Seeded with the series mean rather than zero. Seeding at zero means the
  * average has to climb out of a hole it was never in: a 42-day EWMA fed exactly
- * 42 points reaches only ~64% of the true value, so CTL reads low and every
- * ratio against it reads high. An athlete training identically every single day
- * scored ACWR 1.39 — flagged as "ramping up fast" while doing nothing of the
- * sort. Seeding at the mean makes a steady series return that steady value.
+ * 42 points reaches only ~64% of the true value, so Base Fitness reads low and
+ * every ratio against it reads high. An athlete training identically every
+ * single day scored an Intensity Trend of 139% — flagged as overreaching while
+ * doing nothing of the sort. Seeding at the mean makes a steady series return that steady value.
  */
 function ewma(series: number[], timeConstantDays: number): number {
   if (!series.length) return 0;
@@ -138,19 +138,38 @@ function ewma(series: number[], timeConstantDays: number): number {
   return value;
 }
 
+/**
+ * Named to match the user's COROS watch, whose own definitions are:
+ *
+ *   Base Fitness:    training load your body has been under for the last 42 days
+ *   Load Impact:     training load your body has been under for the last 7 days
+ *   Intensity Trend: Load Impact / Base Fitness
+ *
+ * Those are exactly the quantities computed here, so the app uses the watch's
+ * vocabulary rather than the TrainingPeaks acronyms (CTL/ATL/TSB) it used
+ * before — the user reads these numbers next to the watch that produced the
+ * concept, and two names for one thing is what made them confusing.
+ *
+ * There is deliberately no "Form"/TSB field. COROS never subtracts fitness
+ * from fatigue; it divides, and reports the ratio as Intensity Trend. Keeping
+ * both would be two views of one relationship, so only the watch's survives.
+ */
 export type TrainingLoad = {
-  ctl: number; // "Fitness" — 42-day exponentially weighted load
-  atl: number; // "Fatigue" — 7-day exponentially weighted load
-  tsb: number; // "Form" — ctl - atl
-  acwr: number; // acute:chronic workload ratio (atl / ctl proxy)
+  /** "Base Fitness" — 42-day exponentially weighted load. */
+  baseFitness: number;
+  /** "Load Impact" — 7-day exponentially weighted load. */
+  loadImpact: number;
+  /** "Intensity Trend" — loadImpact / baseFitness, as a percentage. */
+  intensityTrendPct: number;
   /**
-   * Days between the first and last logged activity in the window. CTL is a
-   * 42-day average, so with less history than that it is still filling up and
-   * reads artificially low — which makes ACWR read artificially high.
+   * Days between the first and last logged activity in the window. Base
+   * Fitness is a 42-day average, so with less history than that it is still
+   * filling up and reads artificially low — which makes Intensity Trend read
+   * artificially high.
    */
   historyDays: number;
-  /** True once there is enough history for ACWR to mean anything. */
-  acwrReliable: boolean;
+  /** True once there is enough history for Intensity Trend to mean anything. */
+  trendReliable: boolean;
 };
 
 /** Days spanned by the activities inside the window, oldest to newest. */
@@ -165,20 +184,19 @@ function historySpanDays(activities: Activity[], asOf: Date, windowDays: number)
 
 export function computeTrainingLoad(activities: Activity[], asOf = new Date()): TrainingLoad {
   const series = dailyLoadSeries(activities, 42, asOf);
-  const ctl = ewma(series, 42);
-  const atl = ewma(series.slice(-14), 7);
-  const tsb = ctl - atl;
-  const acwr = ctl > 0 ? atl / ctl : 0;
+  const baseFitness = ewma(series, 42);
+  const loadImpact = ewma(series.slice(-14), 7);
+  const intensityTrend = baseFitness > 0 ? loadImpact / baseFitness : 0;
   const historyDays = historySpanDays(activities, asOf, 42);
   return {
-    ctl: Math.round(ctl * 10) / 10,
-    atl: Math.round(atl * 10) / 10,
-    tsb: Math.round(tsb * 10) / 10,
-    acwr: Math.round(acwr * 100) / 100,
+    baseFitness: Math.round(baseFitness * 10) / 10,
+    loadImpact: Math.round(loadImpact * 10) / 10,
+    intensityTrendPct: Math.round(intensityTrend * 100),
     historyDays,
-    // 42 days is a full CTL time constant. Below ~28 the chronic average is
-    // still converging and any ratio against it overstates the acute side.
-    acwrReliable: historyDays >= 28,
+    // 42 days is a full Base Fitness time constant. Below ~28 the 42-day
+    // average is still converging and any ratio against it overstates the
+    // 7-day side.
+    trendReliable: historyDays >= 28,
   };
 }
 
@@ -216,75 +234,87 @@ function deviceSaysProductive(device: DeviceStatus): boolean {
   );
 }
 
+/**
+ * The five COROS Training Status bands, with the watch's own thresholds and
+ * descriptions. These replace an earlier invented ladder ("Overreaching",
+ * "Ramping up fast", "Building", "Fresh") so the app and the watch never
+ * disagree about what to call the same training state.
+ */
 export function interpretLoad(load: TrainingLoad, device?: DeviceStatus | null): LoadStatus {
-  if (load.ctl === 0) {
+  if (load.baseFitness === 0) {
     return {
       label: "No data yet",
       tone: "good",
-      why: "Log a few workouts to start building a fitness trend.",
+      why: "Log a few workouts to start building a Base Fitness trend.",
     };
   }
 
-  // With under four weeks of history the 42-day chronic average has not
-  // converged, so ACWR is inflated by the maths rather than by training. Saying
-  // "overreaching" here would be telling someone who feels fine to back off on
+  // With under four weeks of history the 42-day average has not converged, so
+  // Intensity Trend is inflated by the maths rather than by training. Saying
+  // "Excessive" here would be telling someone who feels fine to back off on
   // the strength of an artefact — report the uncertainty instead.
-  if (!load.acwrReliable) {
+  if (!load.trendReliable) {
     return {
       label: "Still calibrating",
       tone: "good",
-      why: `Only ${load.historyDays} days of logged history so far. Fitness (CTL) is a 42-day average, so it reads low until about six weeks in, which makes the load ratio look higher than it is. Treat these numbers as provisional — how you actually feel is the better guide right now.`,
+      why: `Only ${load.historyDays} days of logged history so far. Base Fitness is a 42-day average, so it reads low until about six weeks in, which makes Intensity Trend look higher than it is. Treat these numbers as provisional — how you actually feel is the better guide right now.`,
     };
   }
 
   // The watch sees the user's whole training history; this app sees only what
-  // has been imported, so a partial history can manufacture a high ACWR. When
-  // the device says the load is productive, say so and flag the disagreement
-  // rather than telling someone who feels good to back off.
+  // has been imported, so a partial history can manufacture a high Intensity
+  // Trend. When the device says the load is productive, say so and flag the
+  // disagreement rather than telling someone who feels good to back off.
   // Bounded on purpose: a device reading can explain a moderately high ratio
-  // that a partial history inflated, but past ~1.7 the acute load is extreme
+  // that a partial history inflated, but past ~170% the recent load is extreme
   // enough that a days-old snapshot is not good enough evidence to wave it
   // through. Beyond that the warning stands.
-  if (device && deviceSaysProductive(device) && load.acwr > 1.3 && load.acwr <= 1.7) {
+  if (
+    device &&
+    deviceSaysProductive(device) &&
+    load.intensityTrendPct > 130 &&
+    load.intensityTrendPct <= 170
+  ) {
     return {
       label: device.label,
       tone: "good",
-      why: `Our ratio reads high (ACWR ${load.acwr}), but your watch has your full history and puts you at ${device.intensityTrendPct}% intensity trend — productive training, base fitness ${device.baseFitness}. Trust the watch here: this app only sees imported sessions, so its chronic average is understated. Worth a second look if you actually start feeling run down.`,
+      why: `Ours reads ${load.intensityTrendPct}%, but your watch has your full history and puts you at ${device.intensityTrendPct}% — productive training, Base Fitness ${device.baseFitness}. Trust the watch here: this app only sees imported sessions, so its 42-day average is understated. Worth a second look if you actually start feeling run down.`,
     };
   }
 
-  if (load.acwr > 1.5) {
+  // COROS bands, verbatim from the watch's own Training Status screen.
+  if (load.intensityTrendPct >= 150) {
     return {
-      label: "Overreaching",
+      label: "Excessive",
       tone: "critical",
-      why: `Your recent load is ${load.acwr}x your chronic average — the ACWR "danger zone" (>1.5) linked to higher injury risk. Consider an easier week.`,
+      why: `Intensity Trend ${load.intensityTrendPct}% — recent training may be overreaching or excessive. Your last 7 days are running well above your 42-day base. Consider an easier week.`,
     };
   }
-  if (load.acwr > 1.3) {
+  if (load.intensityTrendPct >= 100) {
     return {
-      label: "Ramping up fast",
-      tone: "warning",
-      why: `Load is rising quickly (ACWR ${load.acwr}). Fine short-term, but don't stack another big week on top of it.`,
-    };
-  }
-  if (load.tsb < -20) {
-    return {
-      label: "Building",
+      label: "Optimized",
       tone: "good",
-      why: "Form (TSB) is negative — you're carrying fatigue relative to fitness, which is exactly what a build block looks like. Fine while you feel good; it just means you're not race-fresh. Trust how you actually feel over this number.",
+      why: `Intensity Trend ${load.intensityTrendPct}% — productive training is increasing Base Fitness. This is the band you want to live in during a build block.`,
     };
   }
-  if (load.tsb > 10) {
+  if (load.intensityTrendPct >= 80) {
     return {
-      label: "Fresh",
+      label: "Maintaining",
       tone: "good",
-      why: "Form (TSB) is positive — you're well recovered relative to your training. Good window for a hard effort or race.",
+      why: `Intensity Trend ${load.intensityTrendPct}% — moderate recent Training Load, maintaining Base Fitness. Holding steady rather than building.`,
+    };
+  }
+  if (load.intensityTrendPct >= 50) {
+    return {
+      label: "Resuming/Performance",
+      tone: "good",
+      why: `Intensity Trend ${load.intensityTrendPct}% — either increased load is improving your fitness, or you're rested and ready to take on significant physical effort. A good window for a hard session or a race.`,
     };
   }
   return {
-    label: "On track",
-    tone: "good",
-    why: "Fitness and fatigue are balanced — steady, sustainable training load.",
+    label: "Decreasing",
+    tone: "warning",
+    why: `Intensity Trend ${load.intensityTrendPct}% — low recent Training Load, Base Fitness declining. Fine if this is a deliberate rest week; worth addressing if it isn't.`,
   };
 }
 

@@ -29,7 +29,7 @@ const TODAY_INDEX = todayDayLabel();
 export function HomeClient() {
   const { status, session } = useSession();
   const [activities, setActivities] = useState<Activity[] | null>(null);
-  const [ctl, setCtl] = useState<number | null>(null);
+  const [baseFitness, setBaseFitness] = useState<number | null>(null);
   const [loadLabel, setLoadLabel] = useState<string | null>(null);
   const [load, setLoad] = useState<ReturnType<typeof computeTrainingLoad> | null>(null);
   const [recentRecovery, setRecentRecovery] = useState<RecoveryLog[]>([]);
@@ -61,7 +61,7 @@ export function HomeClient() {
       setRecoveryScore(avgScore);
 
       const load = computeTrainingLoad(rows);
-      setCtl(load.ctl);
+      setBaseFitness(load.baseFitness);
       setLoad(load);
       setLoadLabel(interpretLoad(load, deviceStatus()).label);
 
@@ -158,14 +158,14 @@ export function HomeClient() {
       },
     },
     {
-      label: "Fitness score",
-      value: ctl !== null ? String(ctl) : "—",
-      note: "42-day training load (CTL)",
+      label: "Base Fitness",
+      value: baseFitness !== null ? String(baseFitness) : "—",
+      note: "42-day training load",
       detail: {
-        label: "Fitness score",
-        value: ctl !== null ? String(ctl) : "—",
+        label: "Base Fitness",
+        value: baseFitness !== null ? String(baseFitness) : "—",
         explanation:
-          "Chronic Training Load: a 42-day weighted average of everything you do. It rises slowly as you build fitness and falls when you rest. The monthly bars below show the volume driving it.",
+          "The amount of training load your body has been under for the last 42 days — the same figure your COROS calls Base Fitness. It rises slowly as you build fitness and falls when you rest. The monthly bars below show the volume driving it.",
         chart: {
           data: (activities ? monthlyTrend(activities, 6) : []).map((m) => ({
             label: m.label,
@@ -184,7 +184,7 @@ export function HomeClient() {
         value: loadLabel ?? "—",
         explanation:
           load
-            ? `Fitness (CTL) ${load.ctl}, Fatigue (ATL) ${load.atl}, Form (TSB) ${load.tsb}. Form is fitness minus fatigue — negative means you are carrying training load, which is normal in a build block. ${load.acwrReliable ? "" : "These are still provisional until about six weeks of history builds up."}`.trim()
+            ? `Load Impact ${load.loadImpact} (last 7 days), Base Fitness ${load.baseFitness} (last 42 days), Intensity Trend ${load.intensityTrendPct}%. Intensity Trend is Load Impact divided by Base Fitness — the same three figures your COROS shows. ${load.trendReliable ? "" : "These are still provisional until about six weeks of history builds up."}`.trim()
             : "Log a few sessions to build a training-load trend.",
         chart: {
           data: weeks.map((w) => ({ label: w.label, value: w.mileage })),
