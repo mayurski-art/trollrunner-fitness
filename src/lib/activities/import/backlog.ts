@@ -1013,6 +1013,31 @@ export const BACKLOG: BacklogWorkout[] = [
       s("Hammer Curl (Cross Body)", "20", "8"),
     ],
   },
+  {
+    date: "2026-09-07",
+    title: "Legs and arms",
+    notes:
+      "Prone leg curls: losing some strength on the last few reps of the final set. Outer thigh: last few reps of the final set weren't the best, feels stagnant. Hammer curls feel stagnant even giving it full effort. Standing calves: moved stance around to chase better ROM — as a distance runner, thinking more volume is the key lever there, plus progressive overload.",
+    sets: [
+      ...xN(2, "Hack Squat", "70", "8"),
+      s("Hack Squat", "70", "11"),
+      ...xN(3, "Prone Leg Curl", "65", "11"),
+      ...xN(2, "Leg Extension", "130", "12"),
+      s("Leg Extension", "150", "7"),
+      s("Leg Extension", "130", "4"),
+      s("Outer Thigh (Abductor)", "60", "12"),
+      ...xN(2, "Outer Thigh (Abductor)", "70", "12"),
+      s("Inner Thigh (Adductor)", "130", "15"),
+      s("Inner Thigh (Adductor)", "130", "7"),
+      s("Inner Thigh (Adductor)", "120", "5"),
+      ...xN(2, "Dumbbell Bicep Curl", "25", "8"),
+      s("Dumbbell Bicep Curl", "25", "7"),
+      ...xN(3, "Hammer Curl", "20", "8"),
+      ...xN(2, "Standing Calf Raise", "80", "13"),
+      s("Standing Calf Raise", "60", "10"),
+      s("Standing Calf Raise", "70", "9"),
+    ],
+  },
 ];
 
 /** Total sets across the whole backlog — shown on the import screen. */
