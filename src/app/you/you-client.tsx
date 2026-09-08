@@ -57,12 +57,7 @@ function ProfileView() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <h1 className="text-2xl font-bold tracking-tight">You</h1>
-        <span className="rounded-full bg-brand-soft px-3 py-1 text-xs font-semibold text-brand">
-          Phase 12 · gamification
-        </span>
-      </div>
+      <h1 className="text-2xl font-bold tracking-tight">You</h1>
 
       <section className="card flex items-center gap-4 rounded-2xl p-5">
         <span className="flex h-14 w-14 items-center justify-center rounded-full bg-raised text-2xl font-bold">

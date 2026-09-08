@@ -28,10 +28,17 @@ function looksLikeWorkoutPaste(message: string): boolean {
   return weightHits >= 2 && repHits >= 2;
 }
 
+function renderNotesForPrompt(notes: Awaited<ReturnType<typeof buildCoachFacts>>["recentNotes"]): string {
+  if (notes.length === 0) return "None logged yet.";
+  return notes.map((n) => `${n.date} (${n.label}): "${n.text}"`).join("\n");
+}
+
 function buildCoachSystemPrompt(facts: Awaited<ReturnType<typeof buildCoachFacts>>, trendsText: string): string {
   return `You are the TrollRunner Fitness coach — direct, specific, data-driven, no filler. ${MEDICAL_DISCLAIMER}
 
 Answer using ONLY the facts below; never invent a number that isn't given. When asked to analyze training or recommend improvements, look at the strength trend data for exercises marked "down" or "flat" across sessions (stalled/plateaued), obvious imbalances between muscle groups, and volume gaps — name the specific exercise and a concrete thing to try (add a set, change the rep range, adjust the angle/grip), not a generic "lift heavier". Plain text, a few short paragraphs at most, no markdown headers or bullet walls.
+
+The athlete's own notes below are the highest-signal input you have — every numeric fact is derived, but notes are what they actually said about pain, fatigue, form, motivation, and how a session felt. Weigh them heavily: a note mentioning soreness or pain in a specific area should change what you recommend for that area (lighter load, different exercise, more rest) even if the numbers alone would say otherwise; a note like "felt easy" or "could've done more" is a real signal to progress that exercise; a plateau the athlete calls out in their own words should be taken as seriously as one you'd infer from the trend data. If a note describes something injury-like, lead with the medical disclaimer for that specific part of your answer, not just a generic footer.
 
 ATHLETE FACTS:
 - Training status: "${facts.loadStatus.label}" — Load Impact ${facts.load.loadImpact}, Base Fitness ${facts.load.baseFitness}, Intensity Trend ${facts.load.intensityTrendPct}%
@@ -41,7 +48,10 @@ ATHLETE FACTS:
 - Today's planned workout: ${facts.todayWorkout ? `${facts.todayWorkout.type} — ${facts.todayWorkout.detail}` : "none"}
 
 STRENGTH TRENDS (most recent session first per exercise):
-${trendsText}`;
+${trendsText}
+
+ATHLETE'S OWN NOTES (newest first — from activity logs and recovery check-ins):
+${renderNotesForPrompt(facts.recentNotes)}`;
 }
 
 export async function POST(req: NextRequest) {

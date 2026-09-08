@@ -5,6 +5,7 @@ import { logRecovery } from "@/lib/recovery/api";
 import { interpretScore, scoreFor } from "@/lib/recovery/score";
 import type { RecoveryLog } from "@/lib/recovery/types";
 import { awardActivityXp } from "@/lib/gamification/xp-bridge";
+import { TextArea } from "@/components/onboarding/field";
 
 const SORENESS_EMOJI = ["", "💪", "🙂", "😐", "😣", "🤕"];
 const STRESS_EMOJI = ["", "😌", "🙂", "😐", "😰", "🥴"];
@@ -60,18 +61,20 @@ export function RecoveryCheckin({
   // the adjust-state-during-render pattern (React's documented alternative to a
   // syncing effect), keeping edits in progress intact between those changes.
   const loadedKey = today
-    ? `${today.logDate}:${today.sleepHours}:${today.soreness}:${today.stress}`
+    ? `${today.logDate}:${today.sleepHours}:${today.soreness}:${today.stress}:${today.notes}`
     : "none";
   const [prevKey, setPrevKey] = useState(loadedKey);
   const [sleepHours, setSleepHours] = useState(today?.sleepHours?.toString() ?? "");
   const [soreness, setSoreness] = useState<number | null>(today?.soreness ?? null);
   const [stress, setStress] = useState<number | null>(today?.stress ?? null);
+  const [notes, setNotes] = useState(today?.notes ?? "");
 
   if (prevKey !== loadedKey) {
     setPrevKey(loadedKey);
     setSleepHours(today?.sleepHours?.toString() ?? "");
     setSoreness(today?.soreness ?? null);
     setStress(today?.stress ?? null);
+    setNotes(today?.notes ?? "");
   }
 
   if (today && !editing) {
@@ -90,6 +93,7 @@ export function RecoveryCheckin({
           </button>
         </div>
         {score !== null && <p className="mt-1 text-xs text-muted">Score {score}/100</p>}
+        {today.notes && <p className="mt-1 text-xs italic text-muted">&ldquo;{today.notes}&rdquo;</p>}
       </div>
     );
   }
@@ -99,7 +103,7 @@ export function RecoveryCheckin({
     setBusy(true);
     setError(null);
     try {
-      await logRecovery(userId, { sleepHours, soreness, stress, notes: "" });
+      await logRecovery(userId, { sleepHours, soreness, stress, notes });
       void awardActivityXp();
       setEditing(false);
       onLogged();
@@ -129,6 +133,12 @@ export function RecoveryCheckin({
       </div>
       <ScaleSlider label="Soreness" emoji={SORENESS_EMOJI} value={soreness} onChange={setSoreness} />
       <ScaleSlider label="Stress" emoji={STRESS_EMOJI} value={stress} onChange={setStress} />
+      <TextArea
+        label="Notes"
+        value={notes}
+        onChange={setNotes}
+        placeholder="Anything worth flagging — sore knee, rough sleep, feeling great..."
+      />
       {error && <p className="text-xs text-red-400">{error}</p>}
       <button
         type="submit"

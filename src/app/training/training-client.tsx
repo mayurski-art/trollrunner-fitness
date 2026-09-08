@@ -42,12 +42,7 @@ export function TrainingClient() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <h1 className="text-2xl font-bold tracking-tight">Training</h1>
-        <span className="rounded-full bg-brand-soft px-3 py-1 text-xs font-semibold text-brand">
-          Phase 7 · strength module
-        </span>
-      </div>
+      <h1 className="text-2xl font-bold tracking-tight">Training</h1>
 
       <section className="card rounded-2xl p-5">
         <div className="flex flex-wrap items-center justify-between gap-2">

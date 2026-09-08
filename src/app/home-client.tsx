@@ -291,14 +291,9 @@ export function HomeClient() {
   return (
     <div className="space-y-6">
       {status === "authed" ? (
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <p className="text-sm text-muted">Welcome back</p>
-            <h1 className="text-2xl font-bold tracking-tight">TrollRunner Fitness</h1>
-          </div>
-          <span className="rounded-full bg-brand-soft px-3 py-1 text-xs font-semibold text-brand">
-            Phase 11 · social
-          </span>
+        <div>
+          <p className="text-sm text-muted">Welcome back</p>
+          <h1 className="text-2xl font-bold tracking-tight">TrollRunner Fitness</h1>
         </div>
       ) : (
         <Hero />

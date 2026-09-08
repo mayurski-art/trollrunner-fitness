@@ -10,14 +10,9 @@ export const metadata: Metadata = {
 export default function LearnPage() {
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="text-sm text-muted">TrollRunner Fitness</p>
-          <h1 className="text-2xl font-bold tracking-tight">Learn</h1>
-        </div>
-        <span className="rounded-full bg-brand-soft px-3 py-1 text-xs font-semibold text-brand">
-          Phase 14 · education hub
-        </span>
+      <div>
+        <p className="text-sm text-muted">TrollRunner Fitness</p>
+        <h1 className="text-2xl font-bold tracking-tight">Learn</h1>
       </div>
       <p className="text-sm text-muted">
         Short, evidence-informed guides — not a substitute for personalized medical or coaching

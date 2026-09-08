@@ -36,6 +36,14 @@ export type CoachFacts = {
   todayWorkout: { type: string; detail: string } | null;
   nutrition: NutritionTargets;
   recentActivities: { type: string; title: string; date: string }[];
+  /**
+   * Freeform notes the athlete actually wrote — activity notes and recovery
+   * check-in notes, newest first. This is the one place unstructured
+   * context (pain, plateaus, how a session actually felt) reaches the
+   * coach; every numeric fact above is derived, this is the athlete's own
+   * words, so it needs to actually be read and weighed, not just stored.
+   */
+  recentNotes: { date: string; label: string; text: string }[];
 };
 
 /**
@@ -81,7 +89,7 @@ export async function buildCoachFacts(sb: SupabaseClient, userId: string): Promi
       .maybeSingle(),
     sb
       .from("fit_recovery_logs")
-      .select("sleep_hours, soreness, stress")
+      .select("log_date, sleep_hours, soreness, stress, notes")
       .eq("user_id", userId)
       .order("log_date", { ascending: false })
       .limit(7),
@@ -91,11 +99,11 @@ export async function buildCoachFacts(sb: SupabaseClient, userId: string): Promi
   const loadStatus = interpretLoad(load, deviceStatus());
   const predictions = predictRaceTimes(activities);
   const recoveryLogs = (recoveryRows || []).map((r) => ({
-    logDate: "",
+    logDate: r.log_date,
     sleepHours: r.sleep_hours,
     soreness: r.soreness,
     stress: r.stress,
-    notes: "",
+    notes: r.notes || "",
   }));
   const recoveryScore = averageRecentScore(recoveryLogs, 7);
   const recoveryStatus = interpretScore(recoveryScore);
@@ -123,6 +131,28 @@ export async function buildCoachFacts(sb: SupabaseClient, userId: string): Promi
     activities.filter((a) => new Date(a.occurredAt).getTime() >= Date.now() - 7 * 24 * 60 * 60 * 1000).length
   );
 
+  const activityNotes = activities
+    .filter((a) => a.notes.trim())
+    .slice(0, 20)
+    .map((a) => ({
+      date: new Date(a.occurredAt).toLocaleDateString(),
+      timestamp: new Date(a.occurredAt).getTime(),
+      label: a.title,
+      text: a.notes.trim(),
+    }));
+  const recoveryNotes = recoveryLogs
+    .filter((r) => r.notes.trim())
+    .map((r) => ({
+      date: r.logDate,
+      timestamp: new Date(r.logDate).getTime(),
+      label: "Check-in",
+      text: r.notes.trim(),
+    }));
+  const recentNotes = [...activityNotes, ...recoveryNotes]
+    .sort((a, b) => b.timestamp - a.timestamp)
+    .slice(0, 12)
+    .map(({ date, label, text }) => ({ date, label, text }));
+
   return {
     goals: goalRows.map((g) => g.goal_key),
     weeklyMileage: weeklyMileage(activities),
@@ -138,5 +168,6 @@ export async function buildCoachFacts(sb: SupabaseClient, userId: string): Promi
     recentActivities: activities
       .slice(0, 8)
       .map((a) => ({ type: a.type, title: a.title, date: new Date(a.occurredAt).toLocaleDateString() })),
+    recentNotes,
   };
 }
