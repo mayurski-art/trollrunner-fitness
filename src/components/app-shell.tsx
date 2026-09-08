@@ -74,9 +74,21 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <div className="flex min-h-dvh flex-col">
       <header className="sticky top-0 z-20 border-b border-line bg-background/80 backdrop-blur-md">
         <div className="mx-auto flex h-14 w-full max-w-5xl items-center justify-between px-4">
-          <Link href="/" className="text-[15px] font-semibold tracking-tight">
-            trollrunner<span className="font-bold text-brand"> fitness</span>
-          </Link>
+          <div className="flex items-center gap-3">
+            <a
+              href="https://trollrunner.net"
+              aria-label="Back to trollrunner.net"
+              title="Back to trollrunner.net"
+              className="flex h-7 w-7 items-center justify-center rounded-full text-muted transition-colors hover:bg-raised hover:text-foreground"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4" aria-hidden="true">
+                <path d="M15 18 9 12l6-6" />
+              </svg>
+            </a>
+            <Link href="/" className="text-[15px] font-semibold tracking-tight">
+              trollrunner<span className="font-bold text-brand"> fitness</span>
+            </Link>
+          </div>
           <nav aria-label="Primary" className="hidden items-center gap-1 md:flex">
             {TABS.filter((t) => t.href !== "/log" && t.href !== "/you").map(
               (tab) => {

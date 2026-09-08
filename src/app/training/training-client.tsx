@@ -3,14 +3,20 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useSession } from "@/lib/accounts/session-context";
+import { getAccessToken } from "@/lib/accounts";
 import { getStrengthSplit } from "@/lib/onboarding/api";
 import { AVAILABLE_SPLITS, programFor } from "@/lib/strength/programs";
 import { SkeletonPage } from "@/components/ui/skeleton";
+import type { SplitPattern } from "@/lib/strength/detect-pattern";
+
+type TrainingAnalysis = { pattern: SplitPattern | null; weightLb?: number | null; coachNote?: string | null };
 
 export function TrainingClient() {
   const { status, session } = useSession();
   const [split, setSplit] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [analysis, setAnalysis] = useState<TrainingAnalysis | null>(null);
+  const [analysisLoading, setAnalysisLoading] = useState(false);
 
   useEffect(() => {
     if (status !== "authed" || !session) return;
@@ -21,6 +27,31 @@ export function TrainingClient() {
         setLoaded(true);
       }
     });
+    return () => {
+      cancelled = true;
+    };
+  }, [status, session]);
+
+  useEffect(() => {
+    if (status !== "authed" || !session) return;
+    let cancelled = false;
+    (async () => {
+      setAnalysisLoading(true);
+      try {
+        const token = await getAccessToken();
+        const res = await fetch("/api/training-analysis", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token ?? ""}` },
+        });
+        const data = await res.json();
+        if (!cancelled && res.ok) setAnalysis(data);
+      } catch {
+        // Silently fall back to the template picker below — this is a bonus
+        // panel, not a blocking requirement to use the page.
+      } finally {
+        if (!cancelled) setAnalysisLoading(false);
+      }
+    })();
     return () => {
       cancelled = true;
     };
@@ -44,9 +75,53 @@ export function TrainingClient() {
     <div className="space-y-6">
       <h1 className="text-2xl font-bold tracking-tight">Training</h1>
 
+      {analysisLoading && !analysis && (
+        <div className="card rounded-2xl p-5 text-sm text-muted">Reading your logged workouts…</div>
+      )}
+
+      {analysis?.pattern && (
+        <section className="card rounded-2xl p-5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-sm font-semibold">Your detected pattern</h2>
+            <span className="text-xs text-muted">From your last 8 weeks of logs</span>
+          </div>
+
+          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+            {analysis.pattern.trainedDays.map((d) => (
+              <div key={d.day} className="rounded-xl border border-line px-3 py-2">
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="text-sm font-semibold">{d.day}</span>
+                  <span className="text-xs text-muted">{d.label}</span>
+                </div>
+                {d.exercises.length > 0 && (
+                  <p className="mt-0.5 text-xs text-muted">{d.exercises.join(", ")}</p>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {analysis.pattern.restDays.length > 0 && (
+            <p className="mt-3 text-xs text-muted">Rest days: {analysis.pattern.restDays.join(", ")}</p>
+          )}
+
+          {analysis.pattern.missingGroups.length > 0 && (
+            <div className="mt-3 rounded-xl border border-amber-400/40 bg-amber-400/10 px-3.5 py-2.5 text-xs text-amber-300">
+              Not showing up anywhere in your logs: {analysis.pattern.missingGroups.join(", ")}.
+              {analysis.pattern.suggestedDay && ` ${analysis.pattern.suggestedDay} looks like the best open slot for it.`}
+            </div>
+          )}
+
+          {analysis.coachNote && (
+            <p className="mt-3 border-t border-line pt-3 text-sm text-muted">{analysis.coachNote}</p>
+          )}
+        </section>
+      )}
+
       <section className="card rounded-2xl p-5">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-sm font-semibold">{program.split}</h2>
+          <h2 className="text-sm font-semibold">
+            {analysis?.pattern ? `Template: ${program.split}` : program.split}
+          </h2>
           {loaded && !split && (
             <span className="text-xs text-muted">
               Defaulted — no split saved from onboarding
