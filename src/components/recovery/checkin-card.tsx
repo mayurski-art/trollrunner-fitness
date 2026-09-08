@@ -120,7 +120,8 @@ export function RecoveryCheckin({
         <input
           id="sleep-hours"
           type="number"
-          step="0.5"
+          step="0.25"
+          inputMode="decimal"
           value={sleepHours}
           onChange={(e) => setSleepHours(e.target.value)}
           className="w-full rounded-xl border border-line bg-raised px-3.5 py-2.5 text-sm outline-none focus:border-brand"

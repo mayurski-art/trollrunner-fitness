@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Geist_Mono } from "next/font/google";
 import { AppShell } from "@/components/app-shell";
+import { ServiceWorkerRegister } from "@/components/service-worker-register";
 import { SessionProvider } from "@/lib/accounts/session-context";
 import { ThemeProvider, THEME_INIT_SCRIPT } from "@/lib/theme/theme-context";
 import "./globals.css";
@@ -76,6 +77,7 @@ export default function RootLayout({
         >
           Skip to main content
         </a>
+        <ServiceWorkerRegister />
         <ThemeProvider>
           <SessionProvider>
             <AppShell>{children}</AppShell>
