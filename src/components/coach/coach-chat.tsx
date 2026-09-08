@@ -1,11 +1,16 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { getAccessToken } from "@/lib/accounts";
+import type { ParsedWorkout } from "@/lib/activities/import/parse-workout";
 
-type ChatMessage = { role: "user" | "assistant"; text: string };
+const CHAT_HANDOFF_KEY = "trollrunner-fitness:pasted-workout";
+
+type ChatMessage = { role: "user" | "assistant"; text: string; parsedWorkout?: ParsedWorkout };
 
 export function CoachChat() {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -34,7 +39,10 @@ export function CoachChat() {
 
       const data = await res.json();
       const reply: string = data.reply ?? data.error ?? "Something went wrong — try again.";
-      setMessages((prev) => [...prev, { role: "assistant", text: reply }]);
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", text: reply, parsedWorkout: data.parsedWorkout },
+      ]);
     } catch {
       setMessages((prev) => [
         ...prev,
@@ -75,6 +83,22 @@ export function CoachChat() {
                 }`}
               >
                 {m.text}
+                {m.parsedWorkout && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      try {
+                        sessionStorage.setItem(CHAT_HANDOFF_KEY, JSON.stringify(m.parsedWorkout));
+                      } catch {
+                        // sessionStorage unavailable — /log falls back to its own paste tab.
+                      }
+                      router.push("/log");
+                    }}
+                    className="mt-2 block rounded-full bg-brand px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-brand-strong"
+                  >
+                    Review & save →
+                  </button>
+                )}
               </div>
             ))}
             {busy && <div className="mr-6 rounded-xl bg-raised px-3 py-2 text-sm text-muted">Thinking…</div>}

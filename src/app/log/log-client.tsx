@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useSession } from "@/lib/accounts/session-context";
+import { getAccessToken } from "@/lib/accounts";
 import { listActivities, logRun, logStrength } from "@/lib/activities/api";
 import { currentStreak } from "@/lib/activities/stats";
 import type { Activity, StrengthSet } from "@/lib/activities/types";
@@ -17,6 +18,12 @@ import { EffortSlider } from "@/components/activities/effort-slider";
 import { RestTimer } from "@/components/activities/rest-timer";
 import { Celebration } from "@/components/activities/celebration";
 import { SkeletonPage } from "@/components/ui/skeleton";
+import type { ParsedWorkout } from "@/lib/activities/import/parse-workout";
+
+/** Handoff key coach chat writes to when it parses a pasted workout, so
+ * the log page's paste tab can pick it up already-parsed instead of
+ * re-parsing. Cleared on read. */
+const CHAT_HANDOFF_KEY = "trollrunner-fitness:pasted-workout";
 
 function nowLocalIso(): string {
   const d = new Date();
@@ -31,10 +38,11 @@ export function LogClient() {
   const splitParam = searchParams.get("split");
   const dayParam = searchParams.get("day");
 
-  const [mode, setMode] = useState<"run" | "strength">(splitParam ? "strength" : "run");
+  const [mode, setMode] = useState<"run" | "strength" | "paste">(splitParam ? "strength" : "run");
   const [streak, setStreak] = useState<number | null>(null);
   const [newPRs, setNewPRs] = useState<ExerciseBest[]>([]);
   const [humor, setHumor] = useState(true);
+  const [chatHandoff, setChatHandoff] = useState<ParsedWorkout | null>(null);
 
   useEffect(() => {
     if (!session) return;
@@ -46,6 +54,24 @@ export function LogClient() {
       cancelled = true;
     };
   }, [session]);
+
+  // Pick up a workout the coach chat already parsed, if the user tapped
+  // "Review & save" there — skips straight to the confirm step instead of
+  // re-parsing the same text.
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem(CHAT_HANDOFF_KEY);
+      if (!raw) return;
+      sessionStorage.removeItem(CHAT_HANDOFF_KEY);
+      const parsed = JSON.parse(raw) as ParsedWorkout;
+      if (parsed && Array.isArray(parsed.sets)) {
+        setChatHandoff(parsed);
+        setMode("paste");
+      }
+    } catch {
+      // Malformed or missing handoff — just fall through to the normal flow.
+    }
+  }, []);
 
   const prefill = useMemo(() => {
     if (!splitParam || dayParam === null) return null;
@@ -102,7 +128,7 @@ export function LogClient() {
       </div>
 
       <div className="flex rounded-full border border-line bg-surface p-1">
-        {(["run", "strength"] as const).map((m) => (
+        {(["run", "strength", "paste"] as const).map((m) => (
           <button
             key={m}
             type="button"
@@ -111,18 +137,24 @@ export function LogClient() {
               mode === m ? "bg-raised text-foreground" : "text-muted"
             }`}
           >
-            {m === "run" ? "🏃 Run" : "🏋️ Strength"}
+            {m === "run" ? "🏃 Run" : m === "strength" ? "🏋️ Strength" : "📋 Paste"}
           </button>
         ))}
       </div>
 
       {mode === "run" ? (
         <RunForm userId={session.userId} onSaved={() => handleSaved([])} />
-      ) : (
+      ) : mode === "strength" ? (
         <StrengthForm
           userId={session.userId}
           initialTitle={prefill?.title}
           initialSets={prefill?.sets}
+          onSaved={handleSaved}
+        />
+      ) : (
+        <PasteWorkoutForm
+          userId={session.userId}
+          initialParsed={chatHandoff}
           onSaved={handleSaved}
         />
       )}
@@ -252,16 +284,18 @@ function StrengthForm({
   userId,
   initialTitle,
   initialSets,
+  initialNotes,
   onSaved,
 }: {
   userId: string;
   initialTitle?: string;
   initialSets?: StrengthSet[];
+  initialNotes?: string;
   onSaved: (priorActivities: Activity[], loggedSets: StrengthSet[]) => Promise<void>;
 }) {
   const [title, setTitle] = useState(initialTitle ?? "Strength workout");
   const [occurredAt, setOccurredAt] = useState(nowLocalIso());
-  const [notes, setNotes] = useState("");
+  const [notes, setNotes] = useState(initialNotes ?? "");
   const [effort, setEffort] = useState<number | null>(null);
   const [sets, setSets] = useState<StrengthSet[]>(
     initialSets && initialSets.length ? initialSets : [{ exercise: "", weightLb: "", reps: "" }]
@@ -387,5 +421,101 @@ function StrengthForm({
         {busy ? "Saving…" : "Save workout"}
       </button>
     </form>
+  );
+}
+
+/**
+ * Paste a freeform workout, parse it with the coach's free-tier LLM, then
+ * hand the result to the same StrengthForm the manual tab uses — one save
+ * path (logStrength), one PR/XP flow, whether the sets got here by typing
+ * or by paste. `initialParsed` (set when coach chat already parsed a
+ * paste) skips straight to the confirm step.
+ */
+function PasteWorkoutForm({
+  userId,
+  initialParsed,
+  onSaved,
+}: {
+  userId: string;
+  initialParsed: ParsedWorkout | null;
+  onSaved: (priorActivities: Activity[], loggedSets: StrengthSet[]) => Promise<void>;
+}) {
+  const [raw, setRaw] = useState("");
+  const [parsed, setParsed] = useState<ParsedWorkout | null>(initialParsed);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleParse(e: React.FormEvent) {
+    e.preventDefault();
+    if (!raw.trim() || busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const token = await getAccessToken();
+      const res = await fetch("/api/parse-workout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token ?? ""}` },
+        body: JSON.stringify({ text: raw }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Could not parse that workout.");
+      setParsed(data.workout as ParsedWorkout);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not parse that workout.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (!parsed) {
+    return (
+      <form onSubmit={handleParse} className="space-y-3">
+        <TextArea
+          label="Paste a workout"
+          value={raw}
+          onChange={setRaw}
+          placeholder={`Hack squat: x2 35 lbs each side 8 reps. x1 35 lbs 11 reps.\nProne leg curls: x3 65 lbs 11 reps...`}
+        />
+        {error && (
+          <p role="alert" className="text-sm text-red-400">
+            {error}
+          </p>
+        )}
+        <button
+          type="submit"
+          disabled={busy || !raw.trim()}
+          className="w-full rounded-full bg-brand py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-strong active:scale-[0.98] disabled:opacity-60"
+        >
+          {busy ? "Reading it…" : "Parse workout"}
+        </button>
+      </form>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="rounded-xl border border-line bg-surface px-3.5 py-2.5 text-xs text-muted">
+        Parsed — review before saving. Anything wrong is editable below just like the manual form.
+      </div>
+      {parsed.warnings.length > 0 && (
+        <div className="rounded-xl border border-amber-400/40 bg-amber-400/10 px-3.5 py-2.5 text-xs text-amber-300">
+          Not sure these match past exercises — check the name: {parsed.warnings.join(", ")}
+        </div>
+      )}
+      <button
+        type="button"
+        onClick={() => setParsed(null)}
+        className="text-xs text-muted underline hover:text-foreground"
+      >
+        ← Paste something else
+      </button>
+      <StrengthForm
+        userId={userId}
+        initialTitle={parsed.title}
+        initialSets={parsed.sets}
+        initialNotes={parsed.notes}
+        onSaved={onSaved}
+      />
+    </div>
   );
 }

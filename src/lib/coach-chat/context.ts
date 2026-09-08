@@ -45,7 +45,7 @@ export type CoachFacts = {
  * filter stays so reviving sync later can't silently leak imported data
  * into the coach's answers.
  */
-async function fetchActivities(sb: SupabaseClient, userId: string): Promise<Activity[]> {
+export async function fetchActivities(sb: SupabaseClient, userId: string): Promise<Activity[]> {
   const { data } = await sb
     .from("fit_activities")
     .select(
