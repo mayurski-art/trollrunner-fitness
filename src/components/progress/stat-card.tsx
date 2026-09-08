@@ -56,11 +56,12 @@ export function StatCard({
 
       <div className="mt-3 flex items-end justify-between gap-2 @[22rem]:gap-4">
         <div className="min-w-0">
-          <p className="flex items-baseline gap-1.5">
+          <p className="flex min-w-0 flex-wrap items-baseline gap-1.5">
             <span
               className={
-                valueClassName ??
-                "font-mono text-[28px] font-bold leading-none tracking-tight tabular-nums @[22rem]:text-[34px]"
+                (valueClassName ??
+                  "font-mono text-[28px] font-bold leading-none tracking-tight tabular-nums @[22rem]:text-[34px]") +
+                " min-w-0 [overflow-wrap:break-word]"
               }
             >
               {value}

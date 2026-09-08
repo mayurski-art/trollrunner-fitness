@@ -93,7 +93,9 @@ export function TrainingStatusCard({
       title="Training Status"
       icon={<Glyph color="#ff5a1f">TS</Glyph>}
       value={status.label}
-      valueClassName={`text-[30px] font-bold leading-none tracking-tight ${TONE_TEXT[status.tone]}`}
+      valueClassName={`${
+        status.label.length > 10 ? "text-[20px] @[18rem]:text-[24px] @[22rem]:text-[26px]" : "text-[30px]"
+      } font-bold leading-tight tracking-tight ${TONE_TEXT[status.tone]}`}
       sub={`7-Day Training Load ${series.total.toLocaleString()}`}
       visual={
         <DayBars
